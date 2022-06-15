@@ -1,0 +1,50 @@
+version: 1
+defaults:
+  defaultStagingRegistry: staging.example.com
+  defaultReleaseRegistry: release.example.com
+  defaultBaseImageRegistry: baseImages.example.com
+  defaultContainerFile: Containerfile
+  defaultUpdateCheckCommand: ["test","updates"]
+  defaultTestCommand: ["test.sh"]
+  defaultAssetsToWatch: ["test-assets/*"]
+  defaultBaseImage:
+    registry: thebaseimageregistry.example.com
+    repository: thebaseimage
+    tag: latest
+  defaultBuildArgs:
+    - key: "default-build-arg-a"
+      value: "default-build-arg-value-a"
+    - key: "default-build-arg-b"
+      value: "default-build-arg-value-b"
+
+images:
+  imageWithoutDefaults:
+    containerFile: Containerfile.withoutDefaults
+    stagingLocation:
+      registry: nodefaultstagingregistry.example.com
+      repository: nodefaultstagingimage
+      tag: nodefaultstagingtag
+    releaseLocations:
+      - registry: nodefaultregistry-a.example.com
+        repository: nodefaultimage-a
+        tag: nodefaulttag-a
+      - registry: nodefaultregistry-b.example.com
+        repository: nodefaultimage-b
+        tag: nodefaulttag-b
+    baseImage:
+      registry: nodefaultregistry-base.example.com
+      repository: nodefaultbaseimage
+      tag: nodefaulttag
+    updateCheckCommand: ["nonDefaultUpdateCheckCommand.sh", "updatecheck"]
+    testCommand: ["test-image.sh", "imageWithoutDefaults"]
+    assetsToWatch: ["test-assets/*", "build-assets/nodefaultimage/*"]
+    buildArgs:
+    - key: "nondefault-build-arg-a"
+      value: "nondefault-build-arg-value-a"
+    - key: "nondefault-build-arg-b"
+      value: "nondefault-build-arg-value-b"
+
+  imageWithDefaults:
+    releaseLocations:
+      - repository: imageWithDefault
+        tag: latest

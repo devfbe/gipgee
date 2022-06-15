@@ -1,0 +1,8 @@
+Feature wishes:
+- TOML + YAML config parsen
+- matrix jobs
+- local build / yaml / toml validation on client
+- gipgee init --wizard(?)
+- gipgee als command executor? (commands wrapped als json string um shell escape-probleme zu vermeiden?)
+- Template Engine verwenden? Für werte in config / Containerfile?
+- DOCKER_AUTH_CONFIG berücksichtigen?

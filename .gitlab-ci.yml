@@ -1,0 +1,24 @@
+stages:
+  - build and run test pipeline
+
+run pipeline generator:
+  image: docker.io/golang:1.18.3
+  stage: build and run test pipeline
+  variables:
+    GOPROXY: direct
+  script:
+    - go run main.go self-release generate-pipeline
+  artifacts:
+    paths:
+      - gipgee-pipeline.yml
+
+run generated pipeline:
+  stage: build and run test pipeline
+  trigger:
+    include:
+      - artifact: gipgee-pipeline.yml
+        job: run pipeline generator
+    strategy: depend
+  needs:
+    - job: run pipeline generator
+      artifacts: true

@@ -23,7 +23,7 @@ You can force a start of all jobs when triggering a pipeline for the default bra
 In a feature branch, the gipgee will check which files have been changed in the branch and then build all images that have a matching `watchedAssets` configured in the gipgee.yaml. The pipeline will create and test a staging image, but not release it.
 
 ### Update Check
-The update check pipeline parses your `gipgee.yaml` and then creates update check jobs for the corresponding images. All images defined in the `targetLocations` will be pulled and update checks will be performed. The update check sonsists of two jobs.
+The update check pipeline parses your `gipgee.yaml` and then creates update check jobs for the corresponding images. All images defined in the `targetLocations` will be pulled and update checks will be performed. The update check consists of two jobs.
 #### The Skopeo layer check
 The skopeo layer check checks which layers the base image used for the given image has been configured. It downloads all layer infos (only the layer ids from the manifest, which is really lightweight) and check if the current image is still based on the base (by checking if the base image layer ids are the same as the first layer ids of the current image). 
 
@@ -34,4 +34,10 @@ The best thing the image update check command can do is in most cases:
 * List the installed packages (e.g. by calling `dpkg -l | sort`), save the result to a file (e.g. `result-a.txt`)
 * Perform package updates (e.g. by calling `apt-get update && apt-get -y upgrade`)
 * List the installed packages (e.g. by calling `dpkg -l | sort`), save the result to a file (e.g. `result-b.txt`)
-* Compare the list of installed packages. If they differ, yield that a 
+* Compare the list of installed packages. If they differ, yield that as status to the given update check result file.
+
+
+### Update build pipeline
+After the gipgee has processed the results of the update check pipeline, it will trigger an additional image rebuild pipeline which
+only rebuilds the images that have updates. The goal here is to be as resource efficient as possible and not to swamp your with unnecessary image registry.
+

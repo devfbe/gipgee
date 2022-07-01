@@ -14,7 +14,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 	stagingBuildJobs := make([]*pm.Job, len(imagesToBuild))
 	for idx, imageToBuild := range imagesToBuild {
 		stagingBuildJobs[idx] = &pm.Job{
-			Name:  "🐋 Build staging image "+ imageToBuild +" using kaniko",
+			Name:  "🐋 Build staging image " + imageToBuild + " using kaniko",
 			Image: &kanikoImage,
 			Stage: &allInOneStage,
 			Script: []string{
@@ -43,7 +43,7 @@ func (r *ImageBuildCmd) Run() error {
 	*/
 
 	imagesToBuild := make([]string, 0)
-	for key, _ := range config.Images {
+	for key := range config.Images {
 		imagesToBuild = append(imagesToBuild, key)
 	}
 

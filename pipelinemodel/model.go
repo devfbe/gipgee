@@ -2,6 +2,7 @@ package pipelinemodel
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"path"
 
@@ -19,6 +20,10 @@ type ContainerImageCoordinates struct {
 	Registry   string
 	Repository string
 	Tag        string
+}
+
+func (c *ContainerImageCoordinates) String() string {
+	return fmt.Sprintf("%s/%s:%s", c.Registry, c.Repository, c.Tag)
 }
 
 func (coordinates *ContainerImageCoordinates) MarshalYAML() (interface{}, error) {

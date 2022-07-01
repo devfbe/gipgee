@@ -22,7 +22,11 @@ type UsernamePassword struct {
 func CreateAuth(authMap map[string]UsernamePassword) string {
 	authsMap := make(map[string]DockerAuth)
 	for registry, userpass := range authMap {
-		authsMap[registry] = DockerAuth{
+		patchedRegistry := registry
+		if patchedRegistry == "index.docker.io" {
+			patchedRegistry = "https://index.docker.io/v1/" // docker central registry compatability quirks
+		}
+		authsMap[patchedRegistry] = DockerAuth{
 			Auth: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", userpass.UserName, userpass.Password))),
 		}
 	}

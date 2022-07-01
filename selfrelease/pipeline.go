@@ -4,16 +4,23 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/devfbe/gipgee/docker"
+	git "github.com/devfbe/gipgee/git"
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
-func (r *GeneratePipelineCmd) Run() error {
+func (cmd *GeneratePipelineCmd) Run() error {
 	ai1Stage := pm.Stage{Name: "🔨 all in one"}
 	golangImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "golang", Tag: "1.18.3"}
 	alpineImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "alpine", Tag: "latest"}
 	linterImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "golangci/golangci-lint", Tag: "v1.46.2"}
 	securityScannerImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "securego/gosec", Tag: "2.12.0"}
 	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "debug"} // FIXME: use fixed version
+
+	registry := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY")
+	repository := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REPOSITORY")
+	tag := git.GetCurrentGitRevisionHex()
+	stagingImage := pm.ContainerImageCoordinates{Registry: registry, Repository: repository, Tag: tag}
 
 	testJob := pm.Job{
 		Name:  "🧪 Test",
@@ -52,7 +59,7 @@ func (r *GeneratePipelineCmd) Run() error {
 		Stage: &ai1Stage,
 		Script: []string{
 			"ls -la",
-			"./gipgee self-release generate-kaniko-docker-auth",
+			"./gipgee self-release generate-kaniko-docker-auth --target staging",
 		},
 		Artifacts: &pm.JobArtifacts{
 			Paths: []string{kanikoSecretsFilename},
@@ -63,18 +70,14 @@ func (r *GeneratePipelineCmd) Run() error {
 		}},
 	}
 
-	registry := os.Getenv("GIPGEE_SELF_RELEASE_REGISTRY")
-	repository := os.Getenv("GIPGEE_SELF_RELEASE_REPOSITORY")
-	tag := os.Getenv("GIPGEE_SELF_RELEASE_TAG")
-	fullDestination := fmt.Sprintf("%v/%v:%v", registry, repository, tag)
-	kanikoBuildJob := pm.Job{
+	kanikoBuildJob := pm.Job{ // FIXME: add busybox
 		Name:  "🐋 Build staging image using kaniko",
 		Image: &kanikoImage,
 		Stage: &ai1Stage,
 		Script: []string{
 			"mkdir -p /kaniko/.docker",
 			"cp -v ${CI_PROJECT_DIR}/" + kanikoSecretsFilename + " /kaniko/.docker/config.json",
-			"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/Containerfile --destination " + fullDestination,
+			"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/Containerfile --destination " + stagingImage.String(),
 		},
 		Needs: []pm.JobNeeds{
 			{Job: &generateAuthFileJob, Artifacts: true},
@@ -85,10 +88,42 @@ func (r *GeneratePipelineCmd) Run() error {
 		},
 	}
 
+	buildIntegrationTestPipeline := pm.Job{
+		Name:  "🪄 Build integration test pipeline (with new staging image)",
+		Stage: &ai1Stage,
+		Image: &stagingImage,
+		Needs: []pm.JobNeeds{
+			{Job: &kanikoBuildJob},
+		},
+		Script: []string{
+			"gipgee self-release generate-integration-test-pipeline",
+		},
+	}
+
+	RunIntegrationTestPipeline := pm.Job{
+		Name:  "🔦 Build integration test pipeline (with new staging image)",
+		Stage: &ai1Stage,
+		Image: &stagingImage,
+		Needs: []pm.JobNeeds{
+			{Job: &buildIntegrationTestPipeline},
+		},
+		Script: []string{
+			"echo \"hi\"",
+		},
+	}
+
+	stagingRegistryAuth := docker.CreateAuth(map[string]docker.UsernamePassword{
+		os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY"): {
+			Password: os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY_PASSWORD"),
+			UserName: os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY_USERNAME"),
+		},
+	})
+
 	pipeline := pm.Pipeline{
 		Stages: []pm.Stage{ai1Stage},
 		Variables: map[string]interface{}{
-			"GOPROXY": "direct",
+			"GOPROXY":            "direct",
+			"DOCKER_AUTH_CONFIG": stagingRegistryAuth,
 		},
 		Jobs: []pm.Job{
 			testJob,
@@ -97,6 +132,8 @@ func (r *GeneratePipelineCmd) Run() error {
 			securityScanJob,
 			generateAuthFileJob,
 			kanikoBuildJob,
+			buildIntegrationTestPipeline,
+			RunIntegrationTestPipeline,
 		},
 	}
 	yamlString := pipeline.Render()

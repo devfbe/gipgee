@@ -1,4 +1,12 @@
 version: 1
+registryCredentials:
+  staging:
+    usernameVarName: FOO
+    passwordVarName: BAR
+  dockerAuthBaseImages:
+    authEnvVar: DOCKER_AUTH_CONFIG
+  localDockerAuthConfig:
+    authFile: /home/foo/.docker/config.json
 defaults:
   defaultStagingRegistry: staging.example.com
   defaultReleaseRegistry: release.example.com
@@ -16,7 +24,9 @@ defaults:
       value: "default-build-arg-value-a"
     - key: "default-build-arg-b"
       value: "default-build-arg-value-b"
-
+  defaultStagingRegistryCredentials: staging
+  defaultReleaseRegistryCredentials: localDockerAuthConfig
+  defaultBaseImageRegistryCredentials: dockerAuthBaseImages
 images:
   imageWithoutDefaults:
     containerFile: Containerfile.withoutDefaults
@@ -24,17 +34,21 @@ images:
       registry: nodefaultstagingregistry.example.com
       repository: nodefaultstagingimage
       tag: nodefaultstagingtag
+      credentials: staging
     releaseLocations:
       - registry: nodefaultregistry-a.example.com
         repository: nodefaultimage-a
         tag: nodefaulttag-a
+        credentials: localDockerAuthConfig
       - registry: nodefaultregistry-b.example.com
         repository: nodefaultimage-b
         tag: nodefaulttag-b
+        credentials: localDockerAuthConfig
     baseImage:
       registry: nodefaultregistry-base.example.com
       repository: nodefaultbaseimage
       tag: nodefaulttag
+      credentials: dockerAuthBaseImages
     updateCheckCommand: ["nonDefaultUpdateCheckCommand.sh", "updatecheck"]
     testCommand: ["test-image.sh", "imageWithoutDefaults"]
     assetsToWatch: ["test-assets/*", "build-assets/nodefaultimage/*"]

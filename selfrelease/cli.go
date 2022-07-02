@@ -13,9 +13,13 @@ type GenerateKanikoDockerAuthCmd struct {
 type GeneratePipelineCmd struct {
 }
 
+type GenerateIntegrationTestPipelineCmd struct {
+}
+
 type SelfReleaseCmd struct {
-	GenerateKanikoDockerAuth GenerateKanikoDockerAuthCmd `cmd:""`
-	GeneratePipeline         GeneratePipelineCmd         `cmd:""`
+	GenerateKanikoDockerAuth        GenerateKanikoDockerAuthCmd        `cmd:""`
+	GeneratePipeline                GeneratePipelineCmd                `cmd:""`
+	GenerateIntegrationTestPipeline GenerateIntegrationTestPipelineCmd `cmd:""`
 }
 
 const (

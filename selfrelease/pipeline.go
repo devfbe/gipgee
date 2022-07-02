@@ -9,6 +9,14 @@ import (
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
+// Nested integration test pipeline, wait for the result of this pipeline and continue
+func (cmd *GenerateIntegrationTestPipelineCmd) Run() error {
+	// generate integration test release pipeline
+	// after that, trigger integration test update check pipeline
+	return nil
+}
+
+// Stage 1
 func (cmd *GeneratePipelineCmd) Run() error {
 	ai1Stage := pm.Stage{Name: "🔨 all in one"}
 	golangImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "golang", Tag: "1.18.3"}

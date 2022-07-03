@@ -188,11 +188,11 @@ func TestImageMinimalConfigWithAllDefaults(t *testing.T) {
 		}
 
 		// FIXME TAG and REPOSITORY from env vars
-		if image.StagingLocation.Repository != nil {
-			t.Fatalf("staging repository is not nil for imageWithDefaults")
+		if image.StagingLocation.Repository == nil {
+			t.Fatalf("staging repository is nil for imageWithDefaults")
 		}
-		if image.StagingLocation.Tag != nil {
-			t.Fatalf("staging tag is not nil for imageWithDefaults")
+		if image.StagingLocation.Tag == nil {
+			t.Fatalf("staging tag is nil for imageWithDefaults")
 		}
 
 		assertIntEquals(len(image.ReleaseLocations), 1, t)

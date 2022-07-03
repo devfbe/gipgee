@@ -2,9 +2,11 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -50,6 +52,10 @@ type ImageLocation struct {
 	Credentials *string `yaml:"credentials"`
 }
 
+func (loc *ImageLocation) String() string {
+	return fmt.Sprintf("%s/%s:%s", *loc.Registry, *loc.Repository, *loc.Tag)
+}
+
 type Image struct {
 	ContainerFile      *string          `yaml:"containerFile,omitempty"`
 	StagingLocation    *ImageLocation   `yaml:"stagingLocation,omitempty"`
@@ -92,8 +98,9 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 		if image.StagingLocation == nil {
 			if config.Defaults.DefaultStagingRegistry != nil {
 				image.StagingLocation = &ImageLocation{
-					Registry: config.Defaults.DefaultStagingRegistry,
-					// TODO fill with values from environ
+					Registry:   config.Defaults.DefaultStagingRegistry,
+					Repository: &[]string{("gipgee-staging/" + imageName)}[0],              // FIXME
+					Tag:        &[]string{strconv.FormatInt(time.Now().UnixNano(), 10)}[0], // FIXME
 				}
 			} else {
 				return errors.New("staging registry not defined for image " + imageName + " and no default defined")
@@ -108,8 +115,8 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 			}
 		}
 
-		if image.StagingLocation.Credentials == nil && config.Defaults.DefaultStagingRegistry != nil {
-			image.StagingLocation.Credentials = config.Defaults.DefaultStagingRegistry
+		if image.StagingLocation.Credentials == nil && config.Defaults.DefaultStagingRegistryCredentials != nil {
+			image.StagingLocation.Credentials = config.Defaults.DefaultStagingRegistryCredentials
 		}
 
 		if len(image.ReleaseLocations) == 0 {
@@ -126,6 +133,10 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 			if releaseLocation.Credentials == nil && config.Defaults.DefaultReleaseRegistryCredentials != nil {
 				releaseLocation.Credentials = config.Defaults.DefaultReleaseRegistryCredentials
 			}
+		}
+
+		if (image.BaseImage == nil || image.BaseImage.Credentials == nil || image.BaseImage.Registry == nil || image.BaseImage.Repository == nil || image.BaseImage.Tag == nil) && config.Defaults.DefaultBaseImage == nil {
+			panic(fmt.Errorf("Image '%s' does not contain complete base image configuration but default base image is not defined", imageName))
 		}
 
 		if image.BaseImage == nil {

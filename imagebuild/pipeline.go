@@ -5,20 +5,20 @@ import (
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
-func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool, gipgeeImage string) *pm.Pipeline {
+func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool, params *GeneratePipelineCmd) *pm.Pipeline {
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
 	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "debug"} // FIXME: use fixed version
 
 	var gipgeeImageCoordinates pm.ContainerImageCoordinates
 
-	if gipgeeImage == "" {
+	if params.GipgeeImage == "" {
 		gipgeeImageCoordinates = pm.ContainerImageCoordinates{
 			Registry:   "docker.io",
 			Repository: "devfbe/gipgee",
 			Tag:        "latest",
 		}
 	} else {
-		coords, err := pm.ContainerImageCoordinatesFromString(gipgeeImage)
+		coords, err := pm.ContainerImageCoordinatesFromString(params.GipgeeImage)
 		if err != nil {
 			panic(err)
 		}
@@ -44,10 +44,10 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			Image: &kanikoImage,
 			Stage: &allInOneStage,
 			Script: []string{
-				"mkdir -p /kaniko/.docker",
-				"./.gipgee/gipgee image-build generate-kaniko-auth",
+
+				"./.gipgee/gipgee image-build generate-kaniko-auth --config-file='" + params.ConfigFile + "' --target=staging --image-id '" + imageToBuild + "'",
 				//"cp -v ${CI_PROJECT_DIR}/" + kanikoSecretsFilename + " /kaniko/.docker/config.json",
-				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/" + *config.Images[imageToBuild].ContainerFile + " --no-push",
+				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/" + *config.Images[imageToBuild].ContainerFile + " --no-push --build-arg=GIPGEE_BASE_IMAGE=" + config.Images[imageToBuild].BaseImage.String() + "",
 			},
 			Needs: []pm.JobNeeds{{
 				Job:       &copyGipgeeToArtifact,
@@ -67,7 +67,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 }
 
 func (params *GeneratePipelineCmd) Run() error {
-	config, err := c.LoadConfiguration(params.ConfigFileName)
+	config, err := c.LoadConfiguration(params.ConfigFile)
 	if err != nil {
 		return err
 	}
@@ -81,8 +81,8 @@ func (params *GeneratePipelineCmd) Run() error {
 		imagesToBuild = append(imagesToBuild, key)
 	}
 
-	pipeline := GenerateReleasePipeline(config, imagesToBuild, true, params.GipgeeImage) // True only on manual pipeline..
-	err = pipeline.WritePipelineToFile(params.PipelineFileName)
+	pipeline := GenerateReleasePipeline(config, imagesToBuild, true, params) // True only on manual pipeline..
+	err = pipeline.WritePipelineToFile(params.PipelineFile)
 	if err != nil {
 		panic(err)
 	}

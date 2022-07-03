@@ -6,15 +6,15 @@ type ImageBuildCmd struct {
 }
 
 type GeneratePipelineCmd struct {
-	PipelineFileName string `help:"Set the name of the pipeline file" env:"GIPGEE_IMAGE_BUILD_PIPELINE_FILENAME" default:".gipgee-gitlab-ci.yml"`
-	ConfigFileName   string `help:"Set the name of the gipgee config file" env:"GIPGEE_IMAGE_BUILD_CONFIG_FILENAME" default:"gipgee.yml"`
-	GipgeeImage      string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
+	PipelineFile string `help:"Set the name of the pipeline file" env:"GIPGEE_IMAGE_BUILD_PIPELINE_FILENAME" default:".gipgee-gitlab-ci.yml"`
+	ConfigFile   string `help:"Set the name of the gipgee config file" env:"GIPGEE_IMAGE_BUILD_CONFIG_FILENAME" default:"gipgee.yml"`
+	GipgeeImage  string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
 }
 
 type GenerateKanikoAuthCmd struct {
-	ConfigFileName string `required:""`
-	ImageId        string `required:""`
-	Target         string `enum:"staging,release" required:""`
+	ConfigFile string `required:"" env:"GIPGEE_IMAGE_BUILD_CONFIG_FILENAME"`
+	ImageId    string `required:""`
+	Target     string `enum:"staging,release" required:""`
 }
 
 func (*GeneratePipelineCmd) Help() string {

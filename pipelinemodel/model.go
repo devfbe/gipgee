@@ -53,8 +53,8 @@ func (pipeline *Pipeline) MarshalYAML() (interface{}, error) {
 }
 
 type Pipeline struct {
-	Stages    []Stage
-	Jobs      []Job
+	Stages    []*Stage
+	Jobs      []*Job
 	Variables map[string]interface{}
 }
 
@@ -112,6 +112,13 @@ type JobNeeds struct {
 	Artifacts bool
 }
 
+// TODO in gitlab 14.10 it's possible to use a trigger:forward setting to configure if vars are forwarded
+// we can really use this feature, so we should add this here later.
+type JobTrigger struct {
+	Include  string `yaml:"include"`
+	Strategy string `yaml:"strategy"`
+}
+
 func (jobNeeds JobNeeds) MarshalYAML() (interface{}, error) {
 	if jobNeeds.Job == nil {
 		return nil, errors.New("needs: needs job to be defined")
@@ -134,6 +141,7 @@ type Job struct {
 	Image         *ContainerImageCoordinates `yaml:"image,omitempty"`
 	Needs         []JobNeeds                 `yaml:"needs,omitempty"` // empty array explicitly allowed
 	Interruptible *bool                      `yaml:"interruptible,omitempty"`
+	Trigger       *JobTrigger                `yaml:"trigger,omitempty"`
 	/*
 		cache 	List of files that should be cached between subsequent runs.
 		coverage 	Code coverage settings for a given job.

@@ -26,8 +26,8 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 	}
 
 	pipeline := pm.Pipeline{
-		Stages: []pm.Stage{allInOneStage},
-		Jobs:   []pm.Job{},
+		Stages: []*pm.Stage{&allInOneStage},
+		Jobs:   []*pm.Job{},
 	}
 	return &pipeline
 }

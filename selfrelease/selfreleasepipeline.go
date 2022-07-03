@@ -1,20 +1,12 @@
 package selfrelease
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/devfbe/gipgee/docker"
 	git "github.com/devfbe/gipgee/git"
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
-
-// Nested integration test pipeline, wait for the result of this pipeline and continue
-func (cmd *GenerateIntegrationTestPipelineCmd) Run() error {
-	// generate integration test release pipeline
-	// after that, trigger integration test update check pipeline
-	return nil
-}
 
 // Stage 1
 func (cmd *GeneratePipelineCmd) Run() error {
@@ -24,7 +16,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	linterImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "golangci/golangci-lint", Tag: "v1.46.2"}
 	securityScannerImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "securego/gosec", Tag: "2.12.0"}
 	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "debug"} // FIXME: use fixed version
-
+	skopeoImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "alpine", Tag: "latest"}              // TODO own skopeo image
 	registry := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY")
 	repository := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REPOSITORY")
 	tag := git.GetCurrentGitRevisionHex()
@@ -106,17 +98,35 @@ func (cmd *GeneratePipelineCmd) Run() error {
 		Script: []string{
 			"gipgee self-release generate-integration-test-pipeline",
 		},
+		Artifacts: &pm.JobArtifacts{
+			Paths: []string{
+				SelfReleaseIntegrationTestPipelineFileName,
+			},
+		},
 	}
 
 	RunIntegrationTestPipeline := pm.Job{
-		Name:  "🔦 Build integration test pipeline (with new staging image)",
+		Name:  "▶️ Run integration test pipeline",
 		Stage: &ai1Stage,
-		Image: &stagingImage,
 		Needs: []pm.JobNeeds{
-			{Job: &buildIntegrationTestPipeline},
+			{Job: &buildIntegrationTestPipeline, Artifacts: true},
 		},
+		Trigger: &pm.JobTrigger{
+			Include:  SelfReleaseIntegrationTestPipelineFileName,
+			Strategy: "depend",
+		},
+	}
+
+	PerformSelfRelease := pm.Job{
+		Name:  "🤗 Release staging image",
+		Stage: &ai1Stage,
+		Image: &skopeoImage,
 		Script: []string{
-			"echo \"hi\"",
+			"apk add skopeo",
+			"echo 'i would run skopeo now'",
+		},
+		Needs: []pm.JobNeeds{
+			{Job: &RunIntegrationTestPipeline, Artifacts: false},
 		},
 	}
 
@@ -128,28 +138,27 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	})
 
 	pipeline := pm.Pipeline{
-		Stages: []pm.Stage{ai1Stage},
+		Stages: []*pm.Stage{&ai1Stage},
 		Variables: map[string]interface{}{
 			"GOPROXY":            "direct",
 			"DOCKER_AUTH_CONFIG": stagingRegistryAuth,
 		},
-		Jobs: []pm.Job{
-			testJob,
-			buildJob,
-			lintJob,
-			securityScanJob,
-			generateAuthFileJob,
-			kanikoBuildJob,
-			buildIntegrationTestPipeline,
-			RunIntegrationTestPipeline,
+		Jobs: []*pm.Job{
+			&testJob,
+			&buildJob,
+			&lintJob,
+			&securityScanJob,
+			&generateAuthFileJob,
+			&kanikoBuildJob,
+			&buildIntegrationTestPipeline,
+			&RunIntegrationTestPipeline,
+			&PerformSelfRelease,
 		},
 	}
-	yamlString := pipeline.Render()
-	fmt.Print("Generated pipeline is:\n" + yamlString)
 
-	err := os.WriteFile("gipgee-pipeline.yml", []byte(yamlString), 0600)
+	err := pipeline.WritePipelineToFile("gipgee-pipeline.yml")
 	if err != nil {
-		return err
+		panic(err)
 	}
 	return nil
 }

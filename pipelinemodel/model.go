@@ -114,9 +114,22 @@ type JobNeeds struct {
 
 // TODO in gitlab 14.10 it's possible to use a trigger:forward setting to configure if vars are forwarded
 // we can really use this feature, so we should add this here later.
+
+type JobTriggerInclude struct {
+	Artifact string
+	Job      *Job
+}
+
+func (jobTriggerInclude JobTriggerInclude) MarshalYAML() (interface{}, error) {
+	return map[string]string{
+		"artifact": jobTriggerInclude.Artifact,
+		"job":      jobTriggerInclude.Job.Name,
+	}, nil
+}
+
 type JobTrigger struct {
-	Include  string `yaml:"include"`
-	Strategy string `yaml:"strategy"`
+	Include  *JobTriggerInclude `yaml:"include"`
+	Strategy string             `yaml:"strategy"`
 }
 
 func (jobNeeds JobNeeds) MarshalYAML() (interface{}, error) {

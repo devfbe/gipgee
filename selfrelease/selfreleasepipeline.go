@@ -112,7 +112,10 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			{Job: &buildIntegrationTestPipeline, Artifacts: true},
 		},
 		Trigger: &pm.JobTrigger{
-			Include:  SelfReleaseIntegrationTestPipelineFileName,
+			Include: &pm.JobTriggerInclude{
+				Artifact: SelfReleaseIntegrationTestPipelineFileName,
+				Job:      &buildIntegrationTestPipeline,
+			},
 			Strategy: "depend",
 		},
 	}

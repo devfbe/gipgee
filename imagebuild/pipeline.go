@@ -45,7 +45,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			Stage: &allInOneStage,
 			Script: []string{
 				"mkdir -p /kaniko/.docker",
-				"./.gipgee/gipgee help",
+				"./.gipgee/gipgee image-build generate-kaniko-auth",
 				//"cp -v ${CI_PROJECT_DIR}/" + kanikoSecretsFilename + " /kaniko/.docker/config.json",
 				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/" + *config.Images[imageToBuild].ContainerFile + " --no-push",
 			},
@@ -66,7 +66,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 
 }
 
-func (params *ImageBuildCmd) Run() error {
+func (params *GeneratePipelineCmd) Run() error {
 	config, err := c.LoadConfiguration(params.ConfigFileName)
 	if err != nil {
 		return err

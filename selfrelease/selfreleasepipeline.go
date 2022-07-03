@@ -109,7 +109,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			{Job: &kanikoBuildJob},
 		},
 		Script: []string{
-			"gipgee image-build",
+			"gipgee image-build generate-pipeline",
 		},
 		Artifacts: &pm.JobArtifacts{
 			Paths: []string{

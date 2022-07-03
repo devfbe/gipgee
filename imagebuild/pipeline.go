@@ -5,10 +5,6 @@ import (
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
-const (
-	kanikoSecretsFilename = "gipgee-image-build-kaniko-auth.json" // #nosec G101
-)
-
 func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool, gipgeeImage string) *pm.Pipeline {
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
 	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "debug"} // FIXME: use fixed version
@@ -29,15 +25,15 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		gipgeeImageCoordinates = *coords
 	}
 
-	generateAuthFileJob := pm.Job{
-		Name:  "⚙️ Generate Kaniko docker auth file",
+	copyGipgeeToArtifact := pm.Job{
+		Name:  "🧰 provide gipgee binary as artifact",
 		Image: &gipgeeImageCoordinates,
 		Stage: &allInOneStage,
 		Script: []string{
-			"gipgee self-release generate-kaniko-docker-auth --target staging",
+			"mkdir .gipgee && cd .gipgee && cp $(which gipgee) gipgee",
 		},
 		Artifacts: &pm.JobArtifacts{
-			Paths: []string{kanikoSecretsFilename},
+			Paths: []string{".gipgee"},
 		},
 	}
 
@@ -49,17 +45,18 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			Stage: &allInOneStage,
 			Script: []string{
 				"mkdir -p /kaniko/.docker",
-				"cp -v ${CI_PROJECT_DIR}/" + kanikoSecretsFilename + " /kaniko/.docker/config.json",
+				"./.gipgee/gipgee help",
+				//"cp -v ${CI_PROJECT_DIR}/" + kanikoSecretsFilename + " /kaniko/.docker/config.json",
 				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/" + *config.Images[imageToBuild].ContainerFile + " --no-push",
 			},
 			Needs: []pm.JobNeeds{{
-				Job:       &generateAuthFileJob,
+				Job:       &copyGipgeeToArtifact,
 				Artifacts: true,
 			}},
 		}
 	}
 
-	stagingBuildJobs = append(stagingBuildJobs, &generateAuthFileJob)
+	stagingBuildJobs = append(stagingBuildJobs, &copyGipgeeToArtifact)
 
 	pipeline := pm.Pipeline{
 		Stages: []*pm.Stage{&allInOneStage},

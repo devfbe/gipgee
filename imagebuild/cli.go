@@ -6,6 +6,10 @@ type ImageBuildCmd struct {
 	GipgeeImage      string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
 }
 
+type GenerateKanikoDockerAuthCmd struct {
+	Target string `enum:"staging,release" required:""`
+}
+
 func (r *ImageBuildCmd) Help() string {
 	return "Generate image build pipeline based on the config gipgee config file"
 }

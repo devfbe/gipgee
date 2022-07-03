@@ -187,6 +187,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			"echo 'i would run skopeo now'",
 		},
 		Needs: []pm.JobNeeds{
+			{Job: &runIntegrationTestUpdateCheckPipeline, Artifacts: false},
 			{Job: &runIntegrationTestImageBuildPipeline, Artifacts: false},
 		},
 	}

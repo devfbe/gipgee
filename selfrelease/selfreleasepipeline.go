@@ -8,6 +8,11 @@ import (
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
+const (
+	IntegrationTestPipelineYamlFileName = ".gipgee-integrationtest-pipeline.yaml"
+	IntegrationTestConfigFileName       = "integrationtest/gipgee.yaml"
+)
+
 // Stage 1
 func (cmd *GeneratePipelineCmd) Run() error {
 	ai1Stage := pm.Stage{Name: "🔨 all in one"}
@@ -21,6 +26,13 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	repository := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REPOSITORY")
 	tag := git.GetCurrentGitRevisionHex()
 	stagingImage := pm.ContainerImageCoordinates{Registry: registry, Repository: repository, Tag: tag}
+
+	stagingRegistryAuth := docker.CreateAuth(map[string]docker.UsernamePassword{
+		os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY"): {
+			Password: os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY_PASSWORD"),
+			UserName: os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY_USERNAME"),
+		},
+	})
 
 	testJob := pm.Job{
 		Name:  "🧪 Test",
@@ -96,12 +108,18 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			{Job: &kanikoBuildJob},
 		},
 		Script: []string{
-			"gipgee self-release generate-integration-test-pipeline",
+			"gipgee image-build",
 		},
 		Artifacts: &pm.JobArtifacts{
 			Paths: []string{
-				SelfReleaseIntegrationTestPipelineFileName,
+				IntegrationTestPipelineYamlFileName,
 			},
+		},
+		Variables: &map[string]interface{}{
+			"GIPGEE_IMAGE_BUILD_PIPELINE_FILENAME": IntegrationTestPipelineYamlFileName,
+			"GIPGEE_IMAGE_BUILD_CONFIG_FILENAME":   IntegrationTestConfigFileName,
+			"DOCKER_AUTH_CONFIG":                   stagingRegistryAuth,
+			"GIPGEE_OVERWRITE_GIPGEE_IMAGE":        stagingImage.String(),
 		},
 	}
 
@@ -113,7 +131,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 		},
 		Trigger: &pm.JobTrigger{
 			Include: &pm.JobTriggerInclude{
-				Artifact: SelfReleaseIntegrationTestPipelineFileName,
+				Artifact: IntegrationTestPipelineYamlFileName,
 				Job:      &buildIntegrationTestPipeline,
 			},
 			Strategy: "depend",
@@ -132,13 +150,6 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			{Job: &RunIntegrationTestPipeline, Artifacts: false},
 		},
 	}
-
-	stagingRegistryAuth := docker.CreateAuth(map[string]docker.UsernamePassword{
-		os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY"): {
-			Password: os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY_PASSWORD"),
-			UserName: os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY_USERNAME"),
-		},
-	})
 
 	pipeline := pm.Pipeline{
 		Stages: []*pm.Stage{&ai1Stage},

@@ -1,0 +1,47 @@
+version: 1
+registryCredentials:
+  dockerio:
+    usernameVarName: GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_USERNAME
+    passwordVarName: GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_PASSWORD
+defaults:
+  defaultStagingRegistry: index.docker.io
+  defaultReleaseRegistry: index.docker.io
+  defaultBaseImageRegistry: registry.access.redhat.com
+  defaultContainerFile: integrationtest/Containerfile
+  defaultUpdateCheckCommand: ["test","updates"]
+  defaultTestCommand: ["integrationtest/test.sh"]
+  defaultAssetsToWatch: ["integrationtest/*"]
+  defaultBuildArgs:
+    - key: "INTEGRATION_TEST_ARG_FOO"
+      value: "bar"
+    - key: "INTEGRATION_TEST_ARG_BAR"
+      value: "foo"
+  defaultStagingRegistryCredentials: dockerio
+  defaultReleaseRegistryCredentials: dockerio
+images:
+  ubi7:
+    baseImage:
+      repository: ubi7/ubi
+      tag: latest
+    releaseLocations:
+      - repository: devfbe/gipgee-staging/integration-test-ubi7
+        tag: latest-integrationtest-a
+      - repository: devfbe/gipgee-staging/integration-test-ubi7
+        tag: latest-integrationtest-b
+  ubi8:
+    baseImage:
+      repository: ubi8/ubi
+      tag: latest
+    releaseLocations:
+      - repository: devfbe/gipgee-staging/integration-test-ubi8
+        tag: latest-integrationtest-a
+      - repository: devfbe/gipgee-staging/integration-test-ubi8
+        tag: latest-integrationtest-b
+  ubi9:
+    baseImage:
+      repository: ubi9/ubi
+      tag: latest
+    releaseLocations:
+      - repository: devfbe/gipgee-staging/integration-test-ubi9
+        tag: latest-integrationtest-a
+      - repository: devfbe/gipgee-staging/integration-test-ubi9

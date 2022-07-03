@@ -1,11 +1,33 @@
 package imagebuild
 
 import (
-	"os"
-
 	c "github.com/devfbe/gipgee/config"
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
+
+// Nested integration test pipeline, wait for the result of this pipeline and continue
+func PrevIntegPipeline() error {
+
+	stubStage := pm.Stage{Name: "Stub integration test stage"}
+	stubJob := pm.Job{
+		Name:  "do nothing, just a stub",
+		Stage: &stubStage,
+		Script: []string{
+			"echo 'doing nothing'",
+		},
+	}
+	pipeline := pm.Pipeline{
+		Stages: []*pm.Stage{&stubStage},
+		Jobs:   []*pm.Job{&stubJob},
+	}
+
+	err := pipeline.WritePipelineToFile("xxxxx")
+	if err != nil {
+		panic(err)
+	}
+
+	return nil
+}
 
 func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool) *pm.Pipeline {
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
@@ -27,13 +49,14 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 
 	pipeline := pm.Pipeline{
 		Stages: []*pm.Stage{&allInOneStage},
-		Jobs:   []*pm.Job{},
+		Jobs:   stagingBuildJobs,
 	}
 	return &pipeline
+
 }
 
 func (r *ImageBuildCmd) Run() error {
-	config, err := c.LoadConfiguration("gipgee.yml")
+	config, err := c.LoadConfiguration(r.ConfigFileName)
 	if err != nil {
 		return err
 	}
@@ -48,13 +71,9 @@ func (r *ImageBuildCmd) Run() error {
 	}
 
 	pipeline := GenerateReleasePipeline(config, imagesToBuild, true) // True only on manual pipeline..
-	yamlString := pipeline.Render()
-
-	err = os.WriteFile("gipgee-pipeline.yml", []byte(yamlString), 0600)
-
+	err = pipeline.WritePipelineToFile(r.PipelineFileName)
 	if err != nil {
-		return err
+		panic(err)
 	}
-
 	return nil
 }

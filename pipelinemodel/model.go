@@ -155,6 +155,7 @@ type Job struct {
 	Needs         []JobNeeds                 `yaml:"needs,omitempty"` // empty array explicitly allowed
 	Interruptible *bool                      `yaml:"interruptible,omitempty"`
 	Trigger       *JobTrigger                `yaml:"trigger,omitempty"`
+	Variables     *map[string]interface{}    `yaml:"variables,omitempty"`
 	/*
 		cache 	List of files that should be cached between subsequent runs.
 		coverage 	Code coverage settings for a given job.

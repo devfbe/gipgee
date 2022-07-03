@@ -6,6 +6,7 @@ type UpdateCheckCmd struct {
 	PipelineFileName string `help:"Set the name of the pipeline file" env:"GIPGEE_UPDATE_CHECK_PIPELINE_FILENAME" default:".gipgee-gitlab-ci.yml"`
 	ConfigFileName   string `help:"Set the name of the gipgee config file" env:"GIPGEE_UPDATE_CHECK_CONFIG_FILENAME" default:"gipgee.yml"`
 	GipgeeImage      string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
+	SkipRebuild      bool   `help:"Just run the update check pipeline, skip the rebuild of images (used for testing)" default:"false"`
 }
 
 func (r *UpdateCheckCmd) Run() error {

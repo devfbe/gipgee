@@ -5,33 +5,41 @@ import (
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
-// Nested integration test pipeline, wait for the result of this pipeline and continue
-func PrevIntegPipeline() error {
+const (
+	kanikoSecretsFilename = "gipgee-image-build-kaniko-auth.json" // #nosec G101
+)
 
-	stubStage := pm.Stage{Name: "Stub integration test stage"}
-	stubJob := pm.Job{
-		Name:  "do nothing, just a stub",
-		Stage: &stubStage,
-		Script: []string{
-			"echo 'doing nothing'",
-		},
-	}
-	pipeline := pm.Pipeline{
-		Stages: []*pm.Stage{&stubStage},
-		Jobs:   []*pm.Job{&stubJob},
-	}
-
-	err := pipeline.WritePipelineToFile("xxxxx")
-	if err != nil {
-		panic(err)
-	}
-
-	return nil
-}
-
-func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool) *pm.Pipeline {
+func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool, gipgeeImage string) *pm.Pipeline {
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
 	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "debug"} // FIXME: use fixed version
+
+	var gipgeeImageCoordinates pm.ContainerImageCoordinates
+
+	if gipgeeImage == "" {
+		gipgeeImageCoordinates = pm.ContainerImageCoordinates{
+			Registry:   "docker.io",
+			Repository: "devfbe/gipgee",
+			Tag:        "latest",
+		}
+	} else {
+		coords, err := pm.ContainerImageCoordinatesFromString(gipgeeImage)
+		if err != nil {
+			panic(err)
+		}
+		gipgeeImageCoordinates = *coords
+	}
+
+	generateAuthFileJob := pm.Job{
+		Name:  "⚙️ Generate Kaniko docker auth file",
+		Image: &gipgeeImageCoordinates,
+		Stage: &allInOneStage,
+		Script: []string{
+			"gipgee self-release generate-kaniko-docker-auth --target staging",
+		},
+		Artifacts: &pm.JobArtifacts{
+			Paths: []string{kanikoSecretsFilename},
+		},
+	}
 
 	stagingBuildJobs := make([]*pm.Job, len(imagesToBuild))
 	for idx, imageToBuild := range imagesToBuild {
@@ -41,11 +49,17 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			Stage: &allInOneStage,
 			Script: []string{
 				"mkdir -p /kaniko/.docker",
-				//"cp -v ${CI_PROJECT_DIR}/" + kanikoSecretsFilename + " /kaniko/.docker/config.json",
-				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/Containerfile --no-push",
+				"cp -v ${CI_PROJECT_DIR}/" + kanikoSecretsFilename + " /kaniko/.docker/config.json",
+				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/" + *config.Images[imageToBuild].ContainerFile + " --no-push",
 			},
+			Needs: []pm.JobNeeds{{
+				Job:       &generateAuthFileJob,
+				Artifacts: true,
+			}},
 		}
 	}
+
+	stagingBuildJobs = append(stagingBuildJobs, &generateAuthFileJob)
 
 	pipeline := pm.Pipeline{
 		Stages: []*pm.Stage{&allInOneStage},
@@ -55,8 +69,8 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 
 }
 
-func (r *ImageBuildCmd) Run() error {
-	config, err := c.LoadConfiguration(r.ConfigFileName)
+func (params *ImageBuildCmd) Run() error {
+	config, err := c.LoadConfiguration(params.ConfigFileName)
 	if err != nil {
 		return err
 	}
@@ -70,8 +84,8 @@ func (r *ImageBuildCmd) Run() error {
 		imagesToBuild = append(imagesToBuild, key)
 	}
 
-	pipeline := GenerateReleasePipeline(config, imagesToBuild, true) // True only on manual pipeline..
-	err = pipeline.WritePipelineToFile(r.PipelineFileName)
+	pipeline := GenerateReleasePipeline(config, imagesToBuild, true, params.GipgeeImage) // True only on manual pipeline..
+	err = pipeline.WritePipelineToFile(params.PipelineFileName)
 	if err != nil {
 		panic(err)
 	}

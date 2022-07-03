@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"strings"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -20,6 +21,34 @@ type ContainerImageCoordinates struct {
 	Registry   string
 	Repository string
 	Tag        string
+}
+
+func ContainerImageCoordinatesFromString(containerCoordinates string) (*ContainerImageCoordinates, error) {
+	firstSlashIdx := strings.Index(containerCoordinates, "/")
+	if firstSlashIdx == -1 {
+		return nil, fmt.Errorf("didn't find / in container coordinates '%s' - cannot extract registry. Given coordinates must contain at least registry and repository", containerCoordinates)
+	}
+
+	registry := containerCoordinates[:firstSlashIdx]
+
+	remaining := containerCoordinates[firstSlashIdx+1:]
+	var repository string
+	var tag string
+	indexOfColon := strings.Index(remaining, ":")
+	if indexOfColon == -1 {
+		tag = "latest"
+		repository = remaining
+	} else {
+		tag = remaining[indexOfColon+1:]
+		repository = remaining[:indexOfColon]
+	}
+
+	return &ContainerImageCoordinates{
+		Registry:   registry,
+		Repository: repository,
+		Tag:        tag,
+	}, nil
+
 }
 
 func (c *ContainerImageCoordinates) String() string {

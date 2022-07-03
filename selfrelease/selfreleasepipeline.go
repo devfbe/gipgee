@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	IntegrationTestPipelineYamlFileName = ".gipgee-integrationtest-pipeline.yaml"
-	IntegrationTestConfigFileName       = "integrationtest/gipgee.yaml"
+	IntegrationTestImageBuildPipelineYamlFileName  = ".gipgee-integrationtest-imagebuild-pipeline.yaml"
+	IntegrationTestUpdateCheckPipelineYamlFileName = ".gipgee-integrationtest-updatecheck-pipeline.yaml"
+	IntegrationTestConfigFileName                  = "integrationtest/gipgee.yaml"
 )
 
 // Stage 1
@@ -100,8 +101,8 @@ func (cmd *GeneratePipelineCmd) Run() error {
 		},
 	}
 
-	buildIntegrationTestPipeline := pm.Job{
-		Name:  "🪄 Build integration test pipeline (with new staging image)",
+	buildIntegrationTestImageBuildPipeline := pm.Job{
+		Name:  "🪄 Build image build integration test pipeline",
 		Stage: &ai1Stage,
 		Image: &stagingImage,
 		Needs: []pm.JobNeeds{
@@ -112,33 +113,72 @@ func (cmd *GeneratePipelineCmd) Run() error {
 		},
 		Artifacts: &pm.JobArtifacts{
 			Paths: []string{
-				IntegrationTestPipelineYamlFileName,
+				IntegrationTestImageBuildPipelineYamlFileName,
 			},
 		},
 		Variables: &map[string]interface{}{
-			"GIPGEE_IMAGE_BUILD_PIPELINE_FILENAME": IntegrationTestPipelineYamlFileName,
+			"GIPGEE_IMAGE_BUILD_PIPELINE_FILENAME": IntegrationTestImageBuildPipelineYamlFileName,
 			"GIPGEE_IMAGE_BUILD_CONFIG_FILENAME":   IntegrationTestConfigFileName,
 			"DOCKER_AUTH_CONFIG":                   stagingRegistryAuth,
 			"GIPGEE_OVERWRITE_GIPGEE_IMAGE":        stagingImage.String(),
 		},
 	}
 
-	RunIntegrationTestPipeline := pm.Job{
-		Name:  "▶️ Run integration test pipeline",
+	buildIntegrationTestUpdateCheckPipeline := pm.Job{
+		Name:  "🚀 Build update check integration test pipeline",
+		Stage: &ai1Stage,
+		Image: &stagingImage,
+		Needs: []pm.JobNeeds{
+			{Job: &kanikoBuildJob},
+		},
+		Script: []string{
+			"gipgee update-check",
+		},
+		Artifacts: &pm.JobArtifacts{
+			Paths: []string{
+				IntegrationTestUpdateCheckPipelineYamlFileName,
+			},
+		},
+		Variables: &map[string]interface{}{
+			"GIPGEE_UPDATE_CHECK_PIPELINE_FILENAME": IntegrationTestUpdateCheckPipelineYamlFileName,
+			"GIPGEE_UPDATE_CHECK_CONFIG_FILENAME":   IntegrationTestConfigFileName,
+			"DOCKER_AUTH_CONFIG":                    stagingRegistryAuth,
+			"GIPGEE_OVERWRITE_GIPGEE_IMAGE":         stagingImage.String(),
+		},
+	}
+
+	runIntegrationTestImageBuildPipeline := pm.Job{
+		Name:  "▶️ Run image build integration test pipeline",
 		Stage: &ai1Stage,
 		Needs: []pm.JobNeeds{
-			{Job: &buildIntegrationTestPipeline, Artifacts: true},
+			{Job: &buildIntegrationTestImageBuildPipeline, Artifacts: true},
 		},
 		Trigger: &pm.JobTrigger{
 			Include: &pm.JobTriggerInclude{
-				Artifact: IntegrationTestPipelineYamlFileName,
-				Job:      &buildIntegrationTestPipeline,
+				Artifact: IntegrationTestImageBuildPipelineYamlFileName,
+				Job:      &buildIntegrationTestImageBuildPipeline,
 			},
 			Strategy: "depend",
 		},
 	}
 
-	PerformSelfRelease := pm.Job{
+	runIntegrationTestUpdateCheckPipeline := pm.Job{
+		Name:  "▶️ Run image update check integration test pipeline",
+		Stage: &ai1Stage,
+		Needs: []pm.JobNeeds{
+			{Job: &buildIntegrationTestUpdateCheckPipeline, Artifacts: true},
+			{Job: &runIntegrationTestImageBuildPipeline, Artifacts: false},
+		},
+		Trigger: &pm.JobTrigger{
+			Include: &pm.JobTriggerInclude{
+				Artifact: IntegrationTestUpdateCheckPipelineYamlFileName,
+				Job:      &buildIntegrationTestUpdateCheckPipeline,
+			},
+			Strategy: "depend",
+		},
+	}
+
+	performSelfRelease := pm.Job{
 		Name:  "🤗 Release staging image",
 		Stage: &ai1Stage,
 		Image: &skopeoImage,
@@ -147,7 +187,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			"echo 'i would run skopeo now'",
 		},
 		Needs: []pm.JobNeeds{
-			{Job: &RunIntegrationTestPipeline, Artifacts: false},
+			{Job: &runIntegrationTestImageBuildPipeline, Artifacts: false},
 		},
 	}
 
@@ -164,9 +204,11 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			&securityScanJob,
 			&generateAuthFileJob,
 			&kanikoBuildJob,
-			&buildIntegrationTestPipeline,
-			&RunIntegrationTestPipeline,
-			&PerformSelfRelease,
+			&buildIntegrationTestUpdateCheckPipeline,
+			&buildIntegrationTestImageBuildPipeline,
+			&runIntegrationTestImageBuildPipeline,
+			&runIntegrationTestUpdateCheckPipeline,
+			&performSelfRelease,
 		},
 	}
 

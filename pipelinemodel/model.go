@@ -87,8 +87,8 @@ type Pipeline struct {
 	Variables map[string]interface{}
 }
 
-func (p *Pipeline) validate() error {
-	for _, job := range p.Jobs {
+func (pipeline *Pipeline) validate() error {
+	for _, job := range pipeline.Jobs {
 		for _, globalKeyword := range globalKeywords {
 			if job.Name == globalKeyword {
 				return errors.New("Found job with name" + job.Name + " which is a reserved keyword. Pipeline validation failed.")
@@ -98,14 +98,14 @@ func (p *Pipeline) validate() error {
 	return nil
 }
 
-func (p *Pipeline) Render() string {
+func (pipeline *Pipeline) Render() string {
 
-	err := p.validate()
+	err := pipeline.validate()
 	if err != nil {
 		panic(err)
 	}
 
-	bytes, err := yaml.Marshal(p)
+	bytes, err := yaml.Marshal(pipeline)
 	if err != nil {
 		panic(err)
 	}

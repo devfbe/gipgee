@@ -62,3 +62,9 @@ images:
     releaseLocations:
       - repository: imageWithDefault
         tag: latest
+        
+  imageWithEmptyButSetStagingLocation:
+    releaseLocations:
+      - repository: imageWithEmptyButSetStagingLocation
+        tag: latest
+    stagingLocation:

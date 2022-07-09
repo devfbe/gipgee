@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/devfbe/gipgee/git"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -65,6 +66,23 @@ func TestVersion(t *testing.T) {
 	}
 
 	assertIntEquals(c.Version, []int{1}[0], t)
+}
+
+func TestDefaultValuesForStagingLocation(t *testing.T) {
+	c, err := LoadConfiguration("testconfig.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := c.Images["imageWithEmptyButSetStagingLocation"]
+	assertStringEquals(*cfg.StagingLocation.Registry, "staging.example.com", t)
+	assertStringEquals(*cfg.StagingLocation.Repository, git.GetCurrentGitRevisionHex(""), t)
+	assertStringEquals(*cfg.StagingLocation.Tag, cfg.Id, t)
+
+	cfg = c.Images["imageWithDefaults"]
+	assertStringEquals(*cfg.StagingLocation.Registry, "staging.example.com", t)
+	assertStringEquals(*cfg.StagingLocation.Repository, git.GetCurrentGitRevisionHex(""), t)
+	assertStringEquals(*cfg.StagingLocation.Tag, cfg.Id, t)
 }
 
 func TestDefaults(t *testing.T) {

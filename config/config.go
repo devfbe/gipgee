@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
+	"github.com/devfbe/gipgee/git"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -100,11 +100,7 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 
 		if image.StagingLocation == nil {
 			if config.Defaults.DefaultStagingRegistry != nil {
-				image.StagingLocation = &ImageLocation{
-					Registry:   config.Defaults.DefaultStagingRegistry,
-					Repository: &[]string{("gipgee-staging/" + imageId)}[0],                // FIXME
-					Tag:        &[]string{strconv.FormatInt(time.Now().UnixNano(), 10)}[0], // FIXME
-				}
+				image.StagingLocation = &ImageLocation{}
 			} else {
 				return errors.New("staging registry not defined for image " + imageId + " and no default defined")
 			}
@@ -116,6 +112,14 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 			} else {
 				return errors.New("staging registry not defined for image " + imageId + " and no default defined")
 			}
+		}
+
+		if image.StagingLocation.Repository == nil {
+			image.StagingLocation.Repository = &[]string{git.GetCurrentGitRevisionHex("")}[0]
+		}
+
+		if image.StagingLocation.Tag == nil {
+			image.StagingLocation.Tag = &[]string{imageId}[0]
 		}
 
 		if image.StagingLocation.Credentials == nil && config.Defaults.DefaultStagingRegistryCredentials != nil {

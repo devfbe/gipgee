@@ -25,7 +25,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	skopeoImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "alpine", Tag: "latest"}              // TODO own skopeo image
 	registry := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY")
 	repository := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REPOSITORY")
-	tag := git.GetCurrentGitRevisionHex()
+	tag := git.GetCurrentGitRevisionHex("")
 	stagingImage := pm.ContainerImageCoordinates{Registry: registry, Repository: repository, Tag: tag}
 
 	stagingRegistryAuth := docker.CreateAuth(map[string]docker.UsernamePassword{

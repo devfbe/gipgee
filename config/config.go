@@ -57,6 +57,7 @@ func (loc *ImageLocation) String() string {
 }
 
 type Image struct {
+	Id                 string
 	ContainerFile      *string          `yaml:"containerFile,omitempty"`
 	StagingLocation    *ImageLocation   `yaml:"stagingLocation,omitempty"`
 	ReleaseLocations   []*ImageLocation `yaml:"releaseLocations"`
@@ -85,13 +86,15 @@ func LoadConfiguration(relativePath string) (*Config, error) {
 }
 
 func fillConfigWithDefaultsAndValidate(config *Config) error {
-	for imageName, image := range config.Images {
+	for imageId, image := range config.Images {
+
+		image.Id = imageId
 
 		if image.ContainerFile == nil {
 			if config.Defaults.DefaultContainerFile != nil {
 				image.ContainerFile = config.Defaults.DefaultContainerFile
 			} else {
-				return errors.New("containerFile not defined in image " + imageName + " and no default defined")
+				return errors.New("containerFile not defined in image " + imageId + " and no default defined")
 			}
 		}
 
@@ -99,11 +102,11 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 			if config.Defaults.DefaultStagingRegistry != nil {
 				image.StagingLocation = &ImageLocation{
 					Registry:   config.Defaults.DefaultStagingRegistry,
-					Repository: &[]string{("gipgee-staging/" + imageName)}[0],              // FIXME
+					Repository: &[]string{("gipgee-staging/" + imageId)}[0],                // FIXME
 					Tag:        &[]string{strconv.FormatInt(time.Now().UnixNano(), 10)}[0], // FIXME
 				}
 			} else {
-				return errors.New("staging registry not defined for image " + imageName + " and no default defined")
+				return errors.New("staging registry not defined for image " + imageId + " and no default defined")
 			}
 		}
 
@@ -111,7 +114,7 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 			if config.Defaults.DefaultStagingRegistry != nil {
 				image.StagingLocation.Registry = config.Defaults.DefaultStagingRegistry
 			} else {
-				return errors.New("staging registry not defined for image " + imageName + " and no default defined")
+				return errors.New("staging registry not defined for image " + imageId + " and no default defined")
 			}
 		}
 
@@ -120,14 +123,14 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 		}
 
 		if len(image.ReleaseLocations) == 0 {
-			return errors.New("no release locations defined for image " + imageName)
+			return errors.New("no release locations defined for image " + imageId)
 		}
 
 		for idx, releaseLocation := range image.ReleaseLocations {
 			if releaseLocation.Registry == nil && config.Defaults.DefaultReleaseRegistry != nil {
 				releaseLocation.Registry = config.Defaults.DefaultReleaseRegistry
 			} else if releaseLocation.Registry == nil {
-				return errors.New("registry not defined in release location " + strconv.Itoa(idx) + " for image " + imageName)
+				return errors.New("registry not defined in release location " + strconv.Itoa(idx) + " for image " + imageId)
 			}
 
 			if releaseLocation.Credentials == nil && config.Defaults.DefaultReleaseRegistryCredentials != nil {
@@ -136,7 +139,7 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 		}
 
 		if (image.BaseImage == nil || image.BaseImage.Credentials == nil || image.BaseImage.Registry == nil || image.BaseImage.Repository == nil || image.BaseImage.Tag == nil) && config.Defaults.DefaultBaseImage == nil {
-			panic(fmt.Errorf("Image '%s' does not contain complete base image configuration but default base image is not defined", imageName))
+			panic(fmt.Errorf("Image '%s' does not contain complete base image configuration but default base image is not defined", imageId))
 		}
 
 		if image.BaseImage == nil {

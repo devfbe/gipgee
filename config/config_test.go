@@ -118,6 +118,19 @@ func TestCredentials(t *testing.T) {
 	assertNil(c.RegistryCredentials["localDockerAuthConfig"].PasswordVarName, t)
 }
 
+func TestImageIdIsSet(t *testing.T) {
+	c, err := LoadConfiguration("testconfig.yml")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	for imageId, imageCfg := range c.Images {
+		if imageCfg.Id != imageId {
+			t.Errorf("Image config with id '%s' does not have correct Id. Expected: '%s', given:'%s'", imageId, imageId, imageCfg.Id)
+		}
+	}
+}
+
 func TestImageConfigWithNoDefaults(t *testing.T) {
 	c, err := LoadConfiguration("testconfig.yml")
 

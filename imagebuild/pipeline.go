@@ -8,6 +8,7 @@ import (
 func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool, params *GeneratePipelineCmd) *pm.Pipeline {
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
 	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "debug"} // FIXME: use fixed version
+	skopeoImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "alpine", Tag: "latest"}              // FIXME              // TODO own skopeo image
 
 	var gipgeeImageCoordinates pm.ContainerImageCoordinates
 
@@ -37,9 +38,10 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		},
 	}
 
-	stagingBuildJobs := make([]*pm.Job, len(imagesToBuild))
-	for idx, imageToBuild := range imagesToBuild {
-		stagingBuildJobs[idx] = &pm.Job{
+	stagingBuildJobs := make([]*pm.Job, 0)
+	for _, imageToBuild := range imagesToBuild {
+
+		buildStagingImageJob := pm.Job{
 			Name:  "🐋 Build staging image " + imageToBuild + " using kaniko",
 			Image: &kanikoImage,
 			Stage: &allInOneStage,
@@ -52,6 +54,46 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 				Artifacts: true,
 			}},
 		}
+
+		stagingImageCoordinates, err := pm.ContainerImageCoordinatesFromString(config.Images[imageToBuild].StagingLocation.String())
+
+		if err != nil {
+			panic(err)
+		}
+
+		stagingTestJob := pm.Job{
+			Name:  "🧪 Test staging image " + imageToBuild,
+			Image: stagingImageCoordinates,
+			Stage: &allInOneStage,
+			Script: []string{
+				"echo 'TODO, GIPGEE SHOULD EXECUTE THE COMMAND HERE FIXME'",
+			},
+			Needs: []pm.JobNeeds{
+				{
+					Job:       &buildStagingImageJob,
+					Artifacts: false,
+				},
+				{
+					Job:       &copyGipgeeToArtifact,
+					Artifacts: true,
+				},
+			},
+		}
+
+		performReleaseJob := pm.Job{
+			Name:  "✨ Release staging image " + imageToBuild,
+			Stage: &allInOneStage,
+			Image: &skopeoImage,
+			Script: []string{
+				"apk add skopeo",
+				"echo 'i would run skopeo now'",
+			},
+			Needs: []pm.JobNeeds{
+				{Job: &stagingTestJob, Artifacts: false},
+			},
+		}
+
+		stagingBuildJobs = append(stagingBuildJobs, &buildStagingImageJob, &stagingTestJob, &performReleaseJob)
 	}
 
 	stagingBuildJobs = append(stagingBuildJobs, &copyGipgeeToArtifact)

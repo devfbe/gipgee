@@ -68,3 +68,10 @@ images:
       - repository: imageWithEmptyButSetStagingLocation
         tag: latest
     stagingLocation:
+
+  imageWithFixedRepositoryInStagingLocation:
+    releaseLocations:
+      - repository: imageWithFixedRepositoryInStagingLocation
+        tag: latest
+    stagingLocation:
+      repository: "foobar"

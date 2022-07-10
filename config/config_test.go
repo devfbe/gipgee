@@ -68,6 +68,20 @@ func TestVersion(t *testing.T) {
 	assertIntEquals(c.Version, []int{1}[0], t)
 }
 
+func TestImageStagingTag(t *testing.T) {
+	c, err := LoadConfiguration("testconfig.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := c.Images["imageWithFixedRepositoryInStagingLocation"]
+	gitRev := git.GetCurrentGitRevisionHex("")[0:7]
+	expectedTag := "imageWithFixedRepositoryInStagingLocation-" + gitRev
+
+	if *cfg.StagingLocation.Tag != expectedTag {
+		t.Errorf("given staging location tag '%s' doesn't match expected tag '%s'", *cfg.StagingLocation.Tag, expectedTag)
+	}
+}
+
 func TestDefaultValuesForStagingLocation(t *testing.T) {
 	c, err := LoadConfiguration("testconfig.yml")
 	if err != nil {

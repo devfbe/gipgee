@@ -3,9 +3,11 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/devfbe/gipgee/git"
 	yaml "gopkg.in/yaml.v3"
@@ -104,6 +106,12 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 			} else {
 				return errors.New("staging registry not defined for image " + imageId + " and no default defined")
 			}
+		} else {
+			if image.StagingLocation.Repository != nil && image.StagingLocation.Tag != nil {
+				log.Printf("Warning: you are using a fixed repository and tag for the staging image." +
+					" Please ensure that your gitlab runner uses 'always' as imagePullPolicy, otherwise you may get wrong test" +
+					" results if your cluster doesn't pull the new staging image\n")
+			}
 		}
 
 		if image.StagingLocation.Registry == nil {
@@ -119,7 +127,19 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 		}
 
 		if image.StagingLocation.Tag == nil {
-			image.StagingLocation.Tag = &[]string{imageId}[0]
+			tagName := &[]string{imageId}[0]
+			gitRevision := git.GetCurrentGitRevisionHex("")
+			// some gitlab instances might not use imagePullPolicy: always.
+			// That is a problem in the update checks, but at least for the staging
+			// locations we can work around by ensuring as unique names as possible for the
+			// staging image names. So, if someone explicitly defined the repository which can
+			// be detected by checking if the git revision is not contained in the string, we
+			// append the first 7 chars of the git rev to the image id in the tag.
+			if !strings.Contains(*image.StagingLocation.Repository, gitRevision) {
+				image.StagingLocation.Tag = &[]string{fmt.Sprintf("%s-%s", *tagName, gitRevision[0:7])}[0]
+			} else {
+				image.StagingLocation.Tag = tagName
+			}
 		}
 
 		if image.StagingLocation.Credentials == nil && config.Defaults.DefaultStagingRegistryCredentials != nil {

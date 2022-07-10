@@ -54,6 +54,30 @@ type ImageLocation struct {
 	Credentials *string `yaml:"credentials"`
 }
 
+type UsernamePassword struct {
+	Username string
+	Password string
+}
+
+func (cfg *Config) GetUserNamePassword(credentialId string) (UsernamePassword, error) {
+	credential, exists := cfg.RegistryCredentials[credentialId]
+	if !exists {
+		return UsernamePassword{}, fmt.Errorf("could not find registry credentials with id '%s'", credentialId)
+	}
+	if credential.PasswordVarName != nil && credential.UsernameVarName != nil {
+		userValue, userValueExists := os.LookupEnv(*credential.UsernameVarName)
+		if !userValueExists {
+			return UsernamePassword{}, fmt.Errorf("environment variable '%s' (for username of credential '%s') is not set", *credential.UsernameVarName, credentialId)
+		}
+		passwordValue, passwordValueExists := os.LookupEnv(*credential.PasswordVarName)
+		if !passwordValueExists {
+			return UsernamePassword{}, fmt.Errorf("environment variable '%s' (for password of credential '%s') is not set", *credential.PasswordVarName, credentialId)
+		}
+		return UsernamePassword{Username: userValue, Password: passwordValue}, nil
+	}
+	return UsernamePassword{}, nil
+}
+
 func (loc *ImageLocation) String() string {
 	return fmt.Sprintf("%s/%s:%s", *loc.Registry, *loc.Repository, *loc.Tag)
 }

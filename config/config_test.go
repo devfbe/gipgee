@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
@@ -56,6 +57,67 @@ func stringSliceEquals(given, expected []string, t *testing.T) {
 			t.Errorf("Element at index %v doesn't match (elem in given: '%v', elem in expected: '%v')", i, given[i], expected[i])
 		}
 	}
+}
+
+func TestGetUserNamepassword(t *testing.T) {
+	c, err := LoadConfiguration("testconfig.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test from wrong credential id
+	_, err = c.GetUserNamePassword("doesnotexist")
+	expectedErrorMsg := "could not find registry credentials with id 'doesnotexist'"
+	if err == nil {
+		t.Error("Error is nil but should be given")
+	} else if err.Error() != expectedErrorMsg {
+		t.Errorf("given error '%s' does not match expected error '%s'", err.Error(), expectedErrorMsg)
+	}
+
+	fooBackup, fooExists := os.LookupEnv("FOO")
+	barBackup, barExists := os.LookupEnv("BAR")
+	if fooExists {
+		defer os.Setenv("FOO", fooBackup)
+	} else {
+		defer os.Unsetenv("FOO")
+	}
+
+	if barExists {
+		defer os.Setenv("BAR", barBackup)
+	} else {
+		defer os.Unsetenv("BAR")
+	}
+
+	os.Unsetenv("FOO")
+	os.Unsetenv("BAR")
+
+	// Test missing env vars
+	_, err = c.GetUserNamePassword("staging")
+	expectedErrorMessage := "environment variable 'FOO' (for username of credential 'staging') is not set"
+	if err == nil || err.Error() != expectedErrorMessage {
+		t.Errorf("error is '%v' but should be '%s'", err, expectedErrorMessage)
+	}
+
+	os.Setenv("FOO", "foouser")
+	_, err = c.GetUserNamePassword("staging")
+	expectedErrorMessage = "environment variable 'BAR' (for password of credential 'staging') is not set"
+	if err == nil || err.Error() != expectedErrorMessage {
+		t.Errorf("error is '%v' but should be '%s'", err, expectedErrorMessage)
+	}
+	// Test with correct env vars
+	os.Setenv("BAR", "barpassword")
+	expectedUsernamePassword := UsernamePassword{Username: "foouser", Password: "barpassword"}
+	givenUsernamePassword, err := c.GetUserNamePassword("staging")
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if expectedUsernamePassword != givenUsernamePassword {
+		t.Errorf("given username and password '%+v' does not match expected username and password '%+v'", givenUsernamePassword, expectedUsernamePassword)
+	}
+
+	// FIXME add tests for authEnvVar and authFile
 }
 
 func TestVersion(t *testing.T) {

@@ -44,10 +44,8 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			Image: &kanikoImage,
 			Stage: &allInOneStage,
 			Script: []string{
-
 				"./.gipgee/gipgee image-build generate-kaniko-auth --config-file='" + params.ConfigFile + "' --target=staging --image-id '" + imageToBuild + "'",
-				//"cp -v ${CI_PROJECT_DIR}/" + kanikoSecretsFilename + " /kaniko/.docker/config.json",
-				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/" + *config.Images[imageToBuild].ContainerFile + " --no-push --build-arg=GIPGEE_BASE_IMAGE=" + config.Images[imageToBuild].BaseImage.String() + "",
+				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/" + *config.Images[imageToBuild].ContainerFile + " --build-arg=GIPGEE_BASE_IMAGE=" + config.Images[imageToBuild].BaseImage.String() + " --destination " + config.Images[imageToBuild].StagingLocation.String(),
 			},
 			Needs: []pm.JobNeeds{{
 				Job:       &copyGipgeeToArtifact,

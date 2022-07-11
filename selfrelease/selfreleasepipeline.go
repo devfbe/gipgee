@@ -3,6 +3,7 @@ package selfrelease
 import (
 	"os"
 
+	"github.com/devfbe/gipgee/config"
 	"github.com/devfbe/gipgee/docker"
 	git "github.com/devfbe/gipgee/git"
 	pm "github.com/devfbe/gipgee/pipelinemodel"
@@ -17,12 +18,6 @@ const (
 // Stage 1
 func (cmd *GeneratePipelineCmd) Run() error {
 	ai1Stage := pm.Stage{Name: "🔨 all in one"}
-	golangImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "golang", Tag: "1.18.3"}
-	alpineImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "alpine", Tag: "latest"}
-	linterImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "golangci/golangci-lint", Tag: "v1.46.2"}
-	securityScannerImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "securego/gosec", Tag: "2.12.0"}
-	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "v1.8.1-debug"}
-	skopeoImage := pm.ContainerImageCoordinates{Registry: "quay.io", Repository: "skopeo/stable", Tag: "v1.8.0"}
 	registry := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY")
 	repository := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REPOSITORY")
 	tag := git.GetCurrentGitRevisionHex("")
@@ -37,7 +32,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 
 	testJob := pm.Job{
 		Name:  "🧪 Test",
-		Image: &golangImage,
+		Image: &config.GolangImage,
 		Stage: &ai1Stage,
 		Script: []string{
 			"go test -race -covermode=atomic -coverprofile=coverage.txt ./...",
@@ -46,7 +41,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	}
 	buildJob := pm.Job{
 		Name:   "🏗️ Build",
-		Image:  &golangImage,
+		Image:  &config.GolangImage,
 		Stage:  &ai1Stage,
 		Script: []string{"CGO_ENABLED=0 go build"},
 		Artifacts: &pm.JobArtifacts{
@@ -55,20 +50,20 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	}
 	lintJob := pm.Job{
 		Name:   "📝 Lint",
-		Image:  &linterImage,
+		Image:  &config.LinterImage,
 		Stage:  &ai1Stage,
 		Script: []string{"golangci-lint run"},
 	}
 
 	securityScanJob := pm.Job{
 		Name:   "🛡️ Security Scan",
-		Image:  &securityScannerImage,
+		Image:  &config.SecurityScannerImage,
 		Stage:  &ai1Stage,
 		Script: []string{"gosec ./..."},
 	}
 	generateAuthFileJob := pm.Job{
 		Name:  "⚙️ Generate Kaniko docker auth file",
-		Image: &alpineImage,
+		Image: &config.AlpineImage,
 		Stage: &ai1Stage,
 		Script: []string{
 			"ls -la",
@@ -83,9 +78,9 @@ func (cmd *GeneratePipelineCmd) Run() error {
 		}},
 	}
 
-	kanikoBuildJob := pm.Job{ // FIXME: add busybox
+	kanikoBuildJob := pm.Job{
 		Name:  "🐋 Build staging image using kaniko",
-		Image: &kanikoImage,
+		Image: &config.KanikoImage,
 		Stage: &ai1Stage,
 		Script: []string{
 			"mkdir -p /kaniko/.docker",
@@ -181,7 +176,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	performSelfRelease := pm.Job{
 		Name:  "🤗 Release staging image",
 		Stage: &ai1Stage,
-		Image: &skopeoImage,
+		Image: &config.SkopeoImage,
 		Script: []string{
 			"apk add skopeo",
 			"echo 'i would run skopeo now'",

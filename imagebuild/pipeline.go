@@ -7,8 +7,6 @@ import (
 
 func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool, params *GeneratePipelineCmd) *pm.Pipeline {
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
-	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "debug"} // FIXME: use fixed version
-	skopeoImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "alpine", Tag: "latest"}              // FIXME              // TODO own skopeo image
 
 	var gipgeeImageCoordinates pm.ContainerImageCoordinates
 
@@ -43,7 +41,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 
 		buildStagingImageJob := pm.Job{
 			Name:  "🐋 Build staging image " + imageToBuild + " using kaniko",
-			Image: &kanikoImage,
+			Image: &c.KanikoImage,
 			Stage: &allInOneStage,
 			Script: []string{
 				"./.gipgee/gipgee image-build generate-kaniko-auth --config-file='" + params.ConfigFile + "' --target=staging --image-id '" + imageToBuild + "'",
@@ -83,7 +81,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		performReleaseJob := pm.Job{
 			Name:  "✨ Release staging image " + imageToBuild,
 			Stage: &allInOneStage,
-			Image: &skopeoImage,
+			Image: &c.SkopeoImage,
 			Script: []string{
 				"apk add skopeo",
 				"echo 'i would run skopeo now'",

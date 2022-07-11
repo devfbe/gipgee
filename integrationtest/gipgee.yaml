@@ -8,7 +8,7 @@ defaults:
   defaultReleaseRegistry: index.docker.io
   defaultBaseImageRegistry: index.docker.io
   defaultContainerFile: integrationtest/Containerfile
-  defaultUpdateCheckCommand: ["test","updates"]
+  defaultUpdateCheckCommand: ["echo","hi"]
   defaultTestCommand: ["integrationtest/test.sh"]
   defaultAssetsToWatch: ["integrationtest/*"]
   defaultBaseImage:

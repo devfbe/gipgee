@@ -21,8 +21,8 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	alpineImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "alpine", Tag: "latest"}
 	linterImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "golangci/golangci-lint", Tag: "v1.46.2"}
 	securityScannerImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "securego/gosec", Tag: "2.12.0"}
-	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "debug"} // FIXME: use fixed version
-	skopeoImage := pm.ContainerImageCoordinates{Registry: "docker.io", Repository: "alpine", Tag: "latest"}              // TODO own skopeo image
+	kanikoImage := pm.ContainerImageCoordinates{Registry: "gcr.io", Repository: "kaniko-project/executor", Tag: "v1.8.1-debug"}
+	skopeoImage := pm.ContainerImageCoordinates{Registry: "quay.io", Repository: "skopeo/stable", Tag: "v1.8.0"}
 	registry := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY")
 	repository := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REPOSITORY")
 	tag := git.GetCurrentGitRevisionHex("")

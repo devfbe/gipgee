@@ -20,11 +20,17 @@ type Credentials struct {
 	AuthFile        *string `yaml:"authFile"`
 }
 
+type Quirks struct {
+	// see https://github.com/GoogleContainerTools/kaniko/issues/1297
+	KanikoMoveVarQuirk bool `yaml:"kanikoMoveVarQuirk"`
+}
+
 type Config struct {
 	Version             int                     `yaml:"version"`
 	Defaults            Defaults                `yaml:"defaults"`
 	RegistryCredentials map[string]*Credentials `yaml:"registryCredentials"`
 	Images              map[string]*Image       `yaml:"images"`
+	Quirks              Quirks                  `yaml:"quirks"`
 }
 
 type BuildArg struct {

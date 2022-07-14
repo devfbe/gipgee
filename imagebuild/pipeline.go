@@ -39,14 +39,20 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 	stagingBuildJobs := make([]*pm.Job, 0)
 	for _, imageToBuild := range imagesToBuild {
 
+		kanikoScript := make([]string, 0)
+		ignoredPaths := ""
+		if config.Quirks.KanikoMoveVarQuirk {
+			kanikoScript = append(kanikoScript, "mv /var /var-orig")
+			ignoredPaths = "--ignore-path=/var-orig"
+		}
+		kanikoScript = append(kanikoScript, "./.gipgee/gipgee image-build generate-kaniko-auth --config-file='"+params.ConfigFile+"' --target=staging --image-id '"+imageToBuild+"'")
+		kanikoScript = append(kanikoScript, "/kaniko/executor "+ignoredPaths+" --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/"+*config.Images[imageToBuild].ContainerFile+" --build-arg=GIPGEE_BASE_IMAGE="+config.Images[imageToBuild].BaseImage.String()+" --destination "+config.Images[imageToBuild].StagingLocation.String())
+
 		buildStagingImageJob := pm.Job{
-			Name:  "🐋 Build staging image " + imageToBuild + " using kaniko",
-			Image: &c.KanikoImage,
-			Stage: &allInOneStage,
-			Script: []string{
-				"./.gipgee/gipgee image-build generate-kaniko-auth --config-file='" + params.ConfigFile + "' --target=staging --image-id '" + imageToBuild + "'",
-				"/kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/" + *config.Images[imageToBuild].ContainerFile + " --build-arg=GIPGEE_BASE_IMAGE=" + config.Images[imageToBuild].BaseImage.String() + " --destination " + config.Images[imageToBuild].StagingLocation.String(),
-			},
+			Name:   "🐋 Build staging image " + imageToBuild + " using kaniko",
+			Image:  &c.KanikoImage,
+			Stage:  &allInOneStage,
+			Script: kanikoScript,
 			Needs: []pm.JobNeeds{{
 				Job:       &copyGipgeeToArtifact,
 				Artifacts: true,

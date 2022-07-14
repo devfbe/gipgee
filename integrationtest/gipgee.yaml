@@ -1,4 +1,6 @@
 version: 1
+quirks:
+  kanikoMoveVarQuirk: true
 registryCredentials:
   dockerio:
     usernameVarName: GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_USERNAME

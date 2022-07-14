@@ -1,6 +1,8 @@
 package imagebuild
 
 import (
+	"fmt"
+
 	c "github.com/devfbe/gipgee/config"
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
@@ -64,24 +66,28 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		if err != nil {
 			panic(err)
 		}
-
-		stagingTestJob := pm.Job{
-			Name:  "🧪 Test staging image " + imageToBuild,
-			Image: stagingImageCoordinates,
-			Stage: &allInOneStage,
-			Script: []string{
-				"echo 'TODO, GIPGEE SHOULD EXECUTE THE COMMAND HERE FIXME'",
-			},
-			Needs: []pm.JobNeeds{
-				{
-					Job:       &buildStagingImageJob,
-					Artifacts: false,
+		releaseJobNeeds := make([]pm.JobNeeds, 0)
+		if len(*config.Images[imageToBuild].TestCommand) > 0 {
+			stagingTestJob := pm.Job{
+				Name:   "🧪 Test staging image " + imageToBuild,
+				Image:  stagingImageCoordinates,
+				Stage:  &allInOneStage,
+				Script: []string{fmt.Sprintf("./.gipgee/gipgee exec staging-image-test %s", imageToBuild)},
+				Needs: []pm.JobNeeds{
+					{
+						Job:       &buildStagingImageJob,
+						Artifacts: false,
+					},
+					{
+						Job:       &copyGipgeeToArtifact,
+						Artifacts: true,
+					},
 				},
-				{
-					Job:       &copyGipgeeToArtifact,
-					Artifacts: true,
+				Variables: &map[string]interface{}{
+					"GIPGEE_CONFIG_FILE_NAME": params.ConfigFile,
 				},
-			},
+			}
+			releaseJobNeeds = append(releaseJobNeeds, pm.JobNeeds{Job: &stagingTestJob})
 		}
 
 		performReleaseJob := pm.Job{
@@ -92,12 +98,13 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 				"apk add skopeo",
 				"echo 'i would run skopeo now'",
 			},
-			Needs: []pm.JobNeeds{
-				{Job: &stagingTestJob, Artifacts: false},
-			},
+			Needs: releaseJobNeeds,
 		}
 
-		stagingBuildJobs = append(stagingBuildJobs, &buildStagingImageJob, &stagingTestJob, &performReleaseJob)
+		stagingBuildJobs = append(stagingBuildJobs, &buildStagingImageJob, &performReleaseJob)
+		for _, j := range releaseJobNeeds {
+			stagingBuildJobs = append(stagingBuildJobs, j.Job)
+		}
 	}
 
 	stagingBuildJobs = append(stagingBuildJobs, &copyGipgeeToArtifact)

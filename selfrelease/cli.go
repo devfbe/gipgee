@@ -1,6 +1,9 @@
 package selfrelease
 
-import "github.com/devfbe/gipgee/updatecheck"
+import (
+	"github.com/devfbe/gipgee/imagebuild"
+	"github.com/devfbe/gipgee/updatecheck"
+)
 
 type GenerateKanikoDockerAuthCmd struct {
 	Target string `enum:"staging,release" required:""`
@@ -25,5 +28,6 @@ const (
 // because you can just run a process and pass the args as slice to the command instead of serializing
 // them to one string in the yaml file.
 type ExecCmd struct {
-	UpdateCheck updatecheck.ExecUpdateCheckCmd `cmd:""`
+	UpdateCheck      updatecheck.ExecUpdateCheckCmd     `cmd:""`
+	StagingImageTest imagebuild.ExecStagingImageTestCmd `cmd:""`
 }

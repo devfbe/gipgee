@@ -1,4 +1,5 @@
 ARG GIPGEE_BASE_IMAGE
 FROM $GIPGEE_BASE_IMAGE
-RUN apk update
+RUN apk --no-cache upgrade
+COPY integrationtest/gipgee-update-check.sh /sbin/gipgee-update-check
 

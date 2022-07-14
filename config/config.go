@@ -100,6 +100,10 @@ type Image struct {
 	BuildArgs          *[]BuildArg      `yaml:"buildArgs,omitempty"`
 }
 
+func (img Image) GetUpdateCheckResultFileName() string {
+	return fmt.Sprintf("/tmp/gipgee-%s-update-check.result", img.Id)
+}
+
 func LoadConfiguration(relativePath string) (*Config, error) {
 	bytes, err := os.ReadFile(filepath.Clean(relativePath))
 	if err != nil {

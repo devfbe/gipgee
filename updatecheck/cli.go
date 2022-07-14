@@ -2,6 +2,9 @@ package updatecheck
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+
 	cfg "github.com/devfbe/gipgee/config"
 )
 
@@ -10,7 +13,6 @@ type UpdateCheckCmd struct {
 	ConfigFileName   string `help:"Set the name of the gipgee config file" env:"GIPGEE_UPDATE_CHECK_CONFIG_FILENAME" default:"gipgee.yml"`
 	GipgeeImage      string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
 	SkipRebuild      bool   `help:"Just run the update check pipeline, skip the rebuild of images (used for testing)" default:"false"`
-	ReleaseOrStaging string `enum:"release,staging" default:"release" help:"Which images should be checked for updates? Default: the released images, not the latest from the staging registry"`
 }
 
 func (cmd *UpdateCheckCmd) Run() error {
@@ -21,10 +23,10 @@ func (cmd *UpdateCheckCmd) Run() error {
 	}
 
 	params := PipelineParams{
-		SkipRebuild:      cmd.SkipRebuild,
-		GipgeeImage:      cmd.GipgeeImage,
-		Config:           config,
-		releaseOrStaging: cmd.ReleaseOrStaging,
+		SkipRebuild:    cmd.SkipRebuild,
+		GipgeeImage:    cmd.GipgeeImage,
+		Config:         config,
+		ConfigFileName: cmd.ConfigFileName,
 	}
 	pipeline := GeneratePipeline(params)
 
@@ -39,4 +41,27 @@ func (cmd *UpdateCheckCmd) Run() error {
 
 func (cmd *UpdateCheckCmd) Help() string {
 	return "Generates the update check pipeline"
+}
+
+type ExecUpdateCheckCmd struct {
+	ImageId        string `arg:""`
+	ConfigFileName string `required:"" env:"GIPGEE_CONFIG_FILE_NAME"`
+}
+
+func (cmd *ExecUpdateCheckCmd) Run() error {
+	config, err := cfg.LoadConfiguration(cmd.ConfigFileName)
+	if err != nil {
+		panic(err)
+	}
+	updateCheckCommand := config.Images[cmd.ImageId].UpdateCheckCommand
+	commandString := (*updateCheckCommand)[0]
+	commandArgsString := make([]string, 0)
+	if len(*updateCheckCommand) > 1 {
+		commandArgsString = append(commandArgsString, (*updateCheckCommand)[1:]...)
+	}
+	executionCmd := exec.Command(commandString, commandArgsString...) // #nosec G204
+	executionCmd.Stderr = os.Stderr
+	executionCmd.Stdout = os.Stdout
+	err = executionCmd.Run()
+	return err
 }

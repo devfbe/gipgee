@@ -10,7 +10,7 @@ defaults:
   defaultReleaseRegistry: index.docker.io
   defaultBaseImageRegistry: index.docker.io
   defaultContainerFile: integrationtest/Containerfile
-  defaultUpdateCheckCommand: ["echo","hi"]
+  defaultUpdateCheckCommand: ["gipgee-update-check"]
   defaultTestCommand: ["integrationtest/test.sh"]
   defaultAssetsToWatch: ["integrationtest/*"]
   defaultBaseImage:

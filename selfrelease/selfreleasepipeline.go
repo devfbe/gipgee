@@ -1,6 +1,7 @@
 package selfrelease
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/devfbe/gipgee/config"
@@ -17,7 +18,7 @@ const (
 
 // Stage 1
 func (cmd *GeneratePipelineCmd) Run() error {
-	ai1Stage := pm.Stage{Name: "🔨 all in one"}
+	ai1Stage := pm.Stage{Name: "🔨 gipgee self release 🌀"}
 	registry := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY")
 	repository := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REPOSITORY")
 	tag := git.GetCurrentGitRevisionHex("")
@@ -173,14 +174,17 @@ func (cmd *GeneratePipelineCmd) Run() error {
 		},
 	}
 
+	skopeoCmd := "skopeo copy"
+	skopeoCmd += " --dest-creds ${GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_USERNAME}:${GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_PASSWORD}"
+	skopeoCmd += " --src-creds ${GIPGEE_SELF_RELEASE_STAGING_REGISTRY_USERNAME}:${GIPGEE_SELF_RELEASE_STAGING_REGISTRY_PASSWORD}"
+	skopeoCmd += fmt.Sprintf(" docker://${GIPGEE_SELF_RELEASE_STAGING_REGISTRY}/${GIPGEE_SELF_RELEASE_STAGING_REPOSITORY}:%s", git.GetCurrentGitRevisionHex("."))
+	skopeoCmd += " docker://${GIPGEE_SELF_RELEASE_REGISTRY}/${GIPGEE_SELF_RELEASE_REPOSITORY}:${GIPGEE_SELF_RELEASE_TAG}"
+
 	performSelfRelease := pm.Job{
-		Name:  "🤗 Release staging image",
-		Stage: &ai1Stage,
-		Image: &config.SkopeoImage,
-		Script: []string{
-			"apk add skopeo",
-			"echo 'i would run skopeo now'",
-		},
+		Name:   "🤗 Release staging image",
+		Stage:  &ai1Stage,
+		Image:  &config.SkopeoImage,
+		Script: []string{skopeoCmd},
 		Needs: []pm.JobNeeds{
 			{Job: &runIntegrationTestUpdateCheckPipeline, Artifacts: false},
 			{Job: &runIntegrationTestImageBuildPipeline, Artifacts: false},

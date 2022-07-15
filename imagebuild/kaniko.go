@@ -31,36 +31,57 @@ func (params *GenerateKanikoAuthCmd) Run() error {
 		panic(fmt.Errorf("image config '%s' does not exist - this should never happen here", params.ImageId))
 	}
 	// first of all, ensure that the (potentially read only) base image pull secrets are configured if defined
+	authMap := make(map[string]docker.UsernamePassword, 0)
 	if imgCfg.BaseImage.Credentials != nil {
-		fmt.Println("FIXME implement base image credentials here")
+		up, err := cfg.GetUserNamePassword(*imgCfg.BaseImage.Credentials)
+		if err != nil {
+			panic(err)
+		}
+		authMap[*imgCfg.BaseImage.Registry] = docker.UsernamePassword{
+			UserName: up.Username,
+			Password: up.Password,
+		}
+		log.Printf("Added base image registry auth for registry '%s'\n", *imgCfg.BaseImage.Registry)
+	} else {
+		log.Printf("No base image registry auth configured for registry '%s'\n", *imgCfg.BaseImage.Registry)
 	}
 
-	switch target := params.Target; target {
-	case "release":
-		for _, releaseLoc := range imgCfg.ReleaseLocations {
-			if releaseLoc.Credentials != nil {
-				fmt.Printf("FIXME add credentials for release location %s\n", releaseLoc.String())
-			}
-		}
-	case "staging":
-		if imgCfg.StagingLocation.Credentials != nil {
-			usernamePassword, err := cfg.GetUserNamePassword(*imgCfg.StagingLocation.Credentials)
+	for _, releaseLoc := range imgCfg.ReleaseLocations {
+		if releaseLoc.Credentials != nil {
+			up, err := cfg.GetUserNamePassword(*releaseLoc.Credentials)
 			if err != nil {
 				panic(err)
 			}
-			dockerAuth := docker.CreateAuth(map[string]docker.UsernamePassword{*imgCfg.StagingLocation.Registry: {UserName: usernamePassword.Username, Password: usernamePassword.Password}})
-			err = os.WriteFile(KanikoSecretsFilename, []byte(dockerAuth), 0600)
-			if err != nil {
-				panic(err)
+			authMap[*releaseLoc.Registry] = docker.UsernamePassword{
+				UserName: up.Username,
+				Password: up.Password,
 			}
-			log.Printf("Wrote kaniko docker auth to '%s'", KanikoSecretsFilename)
-
+			log.Printf("Added release location registry auth for registry '%s'\n", *releaseLoc.Registry)
 		} else {
-			log.Printf("Warning, no staging location credentials defined for image '%s'\n", imgCfg.Id)
+			log.Printf("No release location registry auth configured for '%s' (release location '%s')\n", *releaseLoc.Registry, releaseLoc.String())
 		}
-	default:
-		panic("this code should never be reached")
+
 	}
+	if imgCfg.StagingLocation.Credentials != nil {
+		up, err := cfg.GetUserNamePassword(*imgCfg.StagingLocation.Credentials)
+		if err != nil {
+			panic(err)
+		}
+		authMap[*imgCfg.StagingLocation.Registry] = docker.UsernamePassword{
+			UserName: up.Username,
+			Password: up.Password,
+		}
+		log.Printf("Added staging location registry auth for registry '%s'\n", *imgCfg.StagingLocation.Registry)
+	} else {
+		log.Printf("No staging location registry auth configured for '%s'\n", *imgCfg.StagingLocation.Registry)
+	}
+
+	dockerAuth := docker.CreateAuth(authMap)
+	err = os.WriteFile(KanikoSecretsFilename, []byte(dockerAuth), 0600)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Wrote kaniko docker auth to '%s'", KanikoSecretsFilename)
 
 	return nil
 }

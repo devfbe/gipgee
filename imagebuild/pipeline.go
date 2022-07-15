@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	c "github.com/devfbe/gipgee/config"
+	"github.com/devfbe/gipgee/docker"
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
@@ -47,7 +48,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			kanikoScript = append(kanikoScript, "mv /var /var-orig")
 			ignoredPaths = "--ignore-path=/var-orig"
 		}
-		kanikoScript = append(kanikoScript, "./.gipgee/gipgee image-build generate-kaniko-auth --config-file='"+params.ConfigFile+"' --target=staging --image-id '"+imageToBuild+"'")
+		kanikoScript = append(kanikoScript, "./.gipgee/gipgee image-build generate-kaniko-auth --config-file='"+params.ConfigFile+"' --image-id '"+imageToBuild+"'")
 		kanikoScript = append(kanikoScript, "/kaniko/executor "+ignoredPaths+" --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/"+*config.Images[imageToBuild].ContainerFile+" --build-arg=GIPGEE_BASE_IMAGE="+config.Images[imageToBuild].BaseImage.String()+" --destination "+config.Images[imageToBuild].StagingLocation.String())
 
 		buildStagingImageJob := pm.Job{
@@ -60,14 +61,19 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 				Artifacts: true,
 			}},
 		}
-
-		stagingImageCoordinates, err := pm.ContainerImageCoordinatesFromString(config.Images[imageToBuild].StagingLocation.String())
+		imageConfig := config.Images[imageToBuild]
+		stagingImageCoordinates, err := pm.ContainerImageCoordinatesFromString(imageConfig.StagingLocation.String())
 
 		if err != nil {
 			panic(err)
 		}
-		releaseJobNeeds := make([]pm.JobNeeds, 0)
-		if len(*config.Images[imageToBuild].TestCommand) > 0 {
+		releaseJobNeeds := []pm.JobNeeds{
+			{
+				Job:       &copyGipgeeToArtifact,
+				Artifacts: true,
+			},
+		}
+		if len(*imageConfig.TestCommand) > 0 {
 			stagingTestJob := pm.Job{
 				Name:   "🧪 Test staging image " + imageToBuild,
 				Image:  stagingImageCoordinates,
@@ -90,15 +96,56 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			releaseJobNeeds = append(releaseJobNeeds, pm.JobNeeds{Job: &stagingTestJob})
 		}
 
+		authMap := make(map[string]docker.UsernamePassword, 0)
+
+		if imageConfig.BaseImage.Credentials != nil {
+			up, err := config.GetUserNamePassword(*imageConfig.BaseImage.Credentials)
+			if err != nil {
+				panic(err)
+			}
+			authMap[*imageConfig.BaseImage.Registry] = docker.UsernamePassword{
+				UserName: up.Username,
+				Password: up.Password,
+			}
+		}
+		if imageConfig.StagingLocation.Credentials != nil {
+			up, err := config.GetUserNamePassword(*imageConfig.StagingLocation.Credentials)
+			if err != nil {
+				panic(err)
+			}
+			authMap[*imageConfig.StagingLocation.Registry] = docker.UsernamePassword{
+				UserName: up.Username,
+				Password: up.Password,
+			}
+		}
+
+		releaseScript := []string{}
+		skopeoSrcCredentials := ""
+		if imageConfig.StagingLocation.Credentials != nil {
+			up, err := config.GetUserNamePassword(*imageConfig.StagingLocation.Credentials)
+			if err != nil {
+				panic(err)
+			}
+			skopeoSrcCredentials = fmt.Sprintf("--src-username '%s' --src-password '%s'", up.Username, up.Password)
+		}
+
+		for _, releaseLocation := range imageConfig.ReleaseLocations {
+			skopeoDestCredentials := ""
+			if releaseLocation.Credentials != nil {
+				up, err := config.GetUserNamePassword(*releaseLocation.Credentials)
+				if err != nil {
+					panic(err)
+				}
+				skopeoDestCredentials = fmt.Sprintf("--dest-username '%s' --dest-password '%s'", up.Username, up.Password)
+			}
+			releaseScript = append(releaseScript, fmt.Sprintf("skopeo copy %s %s docker://%s docker://%s", skopeoSrcCredentials, skopeoDestCredentials, imageConfig.StagingLocation.String(), releaseLocation.String()))
+		}
 		performReleaseJob := pm.Job{
-			Name:  "✨ Release staging image " + imageToBuild,
-			Stage: &allInOneStage,
-			Image: &c.SkopeoImage,
-			Script: []string{
-				"apk add skopeo",
-				"echo 'i would run skopeo now'",
-			},
-			Needs: releaseJobNeeds,
+			Name:   "✨ Release staging image " + imageToBuild,
+			Stage:  &allInOneStage,
+			Image:  &c.SkopeoImage,
+			Script: releaseScript,
+			Needs:  releaseJobNeeds,
 		}
 
 		stagingBuildJobs = append(stagingBuildJobs, &buildStagingImageJob, &performReleaseJob)

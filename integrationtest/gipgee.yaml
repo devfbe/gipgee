@@ -28,9 +28,9 @@ images:
       repository: alpine
       tag: latest
     stagingLocation:
-      repository: devfbe/gipgee-staging
+      repository: devfbe/gipgee-test
     releaseLocations:
-      - repository: devfbe/gipgee-staging/integration-test-alpine
+      - repository: devfbe/gipgee-test
         tag: latest-integrationtest-a
-      - repository: devfbe/gipgee-staging/integration-test-alpine
+      - repository: devfbe/gipgee-test
         tag: latest-integrationtest-b

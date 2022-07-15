@@ -21,7 +21,6 @@ type GeneratePipelineCmd struct {
 type GenerateKanikoAuthCmd struct {
 	ConfigFile string `required:"" env:"GIPGEE_IMAGE_BUILD_CONFIG_FILENAME"`
 	ImageId    string `required:""`
-	Target     string `enum:"staging,release" required:""`
 }
 
 func (*GeneratePipelineCmd) Help() string {

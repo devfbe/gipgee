@@ -47,6 +47,9 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 		},
 	}
 	pipelineJobs = append(pipelineJobs, &copyGipgeeAsArtifact)
+
+	imageUpdateCheckResultFiles := map[string][]string{}
+
 	for imageId, imageConfig := range params.Config.Images {
 
 		var locations []*config.ImageLocation
@@ -54,9 +57,13 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 		locations = append(locations, imageConfig.ReleaseLocations...)
 
 		for idx, location := range locations {
+
+			resultFileLocation := fmt.Sprintf("/tmp/gipgee-update-check-result-%s-release-location-%d", imageId, idx)
+			imageUpdateCheckResultFiles[imageId] = append(imageUpdateCheckResultFiles[imageId], resultFileLocation)
+
 			if imageConfig.UpdateCheckCommand != nil {
 				pipelineJobs = append(pipelineJobs, &pm.Job{
-					Name:   fmt.Sprintf("Update check job %d - image %s", idx, *location.Repository), // Todo maybe idx of location if multiple??
+					Name:   fmt.Sprintf("Update check %s/%d", imageId, idx),
 					Stage:  &ai1Stage,
 					Script: []string{fmt.Sprintf("./gipgee exec update-check %s", imageId)},
 					Image: &pm.ContainerImageCoordinates{
@@ -71,7 +78,8 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 						},
 					},
 					Variables: &map[string]interface{}{
-						"GIPGEE_CONFIG_FILE_NAME": params.ConfigFileName,
+						"GIPGEE_CONFIG_FILE_NAME":              params.ConfigFileName,
+						"GIPGEE_UPDATE_CHECK_RESULT_FILE_PATH": resultFileLocation,
 					},
 				})
 			}

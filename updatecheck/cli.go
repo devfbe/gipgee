@@ -46,6 +46,7 @@ func (cmd *UpdateCheckCmd) Help() string {
 type ExecUpdateCheckCmd struct {
 	ImageId        string `arg:""`
 	ConfigFileName string `required:"" env:"GIPGEE_CONFIG_FILE_NAME"`
+	ResultFilePath string `required:"" env:"GIPGEE_UPDATE_CHECK_RESULT_FILE_PATH"`
 }
 
 func (cmd *ExecUpdateCheckCmd) Run() error {
@@ -59,6 +60,7 @@ func (cmd *ExecUpdateCheckCmd) Run() error {
 	if len(*updateCheckCommand) > 1 {
 		commandArgsString = append(commandArgsString, (*updateCheckCommand)[1:]...)
 	}
+	commandArgsString = append(commandArgsString, cmd.ResultFilePath)
 	executionCmd := exec.Command(commandString, commandArgsString...) // #nosec G204
 	executionCmd.Stderr = os.Stderr
 	executionCmd.Stdout = os.Stdout

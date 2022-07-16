@@ -8,8 +8,9 @@ import (
 )
 
 type ImageBuildCmd struct {
-	GenerateKanikoAuth GenerateKanikoAuthCmd `cmd:""`
-	GeneratePipeline   GeneratePipelineCmd   `cmd:""`
+	GenerateKanikoAuth   GenerateKanikoAuthCmd   `cmd:""`
+	GeneratePipeline     GeneratePipelineCmd     `cmd:""`
+	ExecStagingImageTest ExecStagingImageTestCmd `cmd:""`
 }
 
 type GeneratePipelineCmd struct {

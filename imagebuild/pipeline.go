@@ -78,7 +78,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 				Name:   "🧪 Test staging image " + imageToBuild,
 				Image:  stagingImageCoordinates,
 				Stage:  &allInOneStage,
-				Script: []string{fmt.Sprintf("./.gipgee/gipgee exec staging-image-test %s", imageToBuild)},
+				Script: []string{fmt.Sprintf("./.gipgee/gipgee image-build exec-staging-image-test %s", imageToBuild)},
 				Needs: []pm.JobNeeds{
 					{
 						Job:       &buildStagingImageJob,

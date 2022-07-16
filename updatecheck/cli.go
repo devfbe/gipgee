@@ -9,13 +9,18 @@ import (
 )
 
 type UpdateCheckCmd struct {
+	GeneratePipeline GeneratePipelineCmd `cmd:""`
+	ExecUpdateCheck  ExecUpdateCheckCmd  `cmd:""`
+}
+
+type GeneratePipelineCmd struct {
 	PipelineFileName string `help:"Set the name of the pipeline file" env:"GIPGEE_UPDATE_CHECK_PIPELINE_FILENAME" default:".gipgee-gitlab-ci.yml"`
 	ConfigFileName   string `help:"Set the name of the gipgee config file" env:"GIPGEE_UPDATE_CHECK_CONFIG_FILENAME" default:"gipgee.yml"`
 	GipgeeImage      string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
 	SkipRebuild      bool   `help:"Just run the update check pipeline, skip the rebuild of images (used for testing)" default:"false"`
 }
 
-func (cmd *UpdateCheckCmd) Run() error {
+func (cmd *GeneratePipelineCmd) Run() error {
 
 	config, err := cfg.LoadConfiguration(cmd.ConfigFileName)
 	if err != nil {
@@ -39,7 +44,7 @@ func (cmd *UpdateCheckCmd) Run() error {
 	return nil
 }
 
-func (cmd *UpdateCheckCmd) Help() string {
+func (cmd *GeneratePipelineCmd) Help() string {
 	return "Generates the update check pipeline"
 }
 

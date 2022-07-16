@@ -65,7 +65,7 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 				pipelineJobs = append(pipelineJobs, &pm.Job{
 					Name:   fmt.Sprintf("Update check %s/%d", imageId, idx),
 					Stage:  &ai1Stage,
-					Script: []string{fmt.Sprintf("./gipgee exec update-check %s", imageId)},
+					Script: []string{fmt.Sprintf("./gipgee update-check exec-update-check %s", imageId)},
 					Image: &pm.ContainerImageCoordinates{
 						Registry:   *location.Registry,
 						Repository: *location.Repository,

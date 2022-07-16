@@ -128,7 +128,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			{Job: &kanikoBuildJob},
 		},
 		Script: []string{
-			"gipgee update-check --skip-rebuild",
+			"gipgee update-check generate-pipeline --skip-rebuild",
 		},
 		Artifacts: &pm.JobArtifacts{
 			Paths: []string{

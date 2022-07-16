@@ -170,7 +170,6 @@ func TestDefaults(t *testing.T) {
 
 	assertStringEquals(*c.Defaults.DefaultStagingRegistry, "staging.example.com", t)
 	assertStringEquals(*c.Defaults.DefaultReleaseRegistry, "release.example.com", t)
-	assertStringEquals(*c.Defaults.DefaultBaseImageRegistry, "baseImages.example.com", t)
 	assertStringEquals(*c.Defaults.DefaultContainerFile, "Containerfile", t)
 	stringSliceEquals(*c.Defaults.DefaultUpdateCheckCommand, []string{"test", "updates"}, t)
 	stringSliceEquals(*c.Defaults.DefaultTestCommand, []string{"test.sh"}, t)

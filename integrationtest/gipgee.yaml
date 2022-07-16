@@ -8,7 +8,6 @@ registryCredentials:
 defaults:
   defaultStagingRegistry: index.docker.io
   defaultReleaseRegistry: index.docker.io
-  defaultBaseImageRegistry: index.docker.io
   defaultContainerFile: integrationtest/Containerfile
   defaultUpdateCheckCommand: ["gipgee-update-check"]
   defaultTestCommand: ["integrationtest/test.sh"]

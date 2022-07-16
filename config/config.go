@@ -41,7 +41,6 @@ type BuildArg struct {
 type Defaults struct {
 	DefaultStagingRegistry              *string        `yaml:"defaultStagingRegistry,omitempty"`
 	DefaultReleaseRegistry              *string        `yaml:"defaultReleaseRegistry,omitempty"`
-	DefaultBaseImageRegistry            *string        `yaml:"defaultBaseImageRegistry,omitempty"`
 	DefaultContainerFile                *string        `yaml:"defaultContainerFile,omitempty"`
 	DefaultStagingRegistryCredentials   *string        `yaml:"defaultStagingRegistryCredentials,omitempty"`
 	DefaultBaseImageRegistryCredentials *string        `yaml:"defaultBaseImageRegistryCredentials,omitempty"`

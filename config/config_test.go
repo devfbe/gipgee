@@ -3,11 +3,63 @@ package config
 import (
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/devfbe/gipgee/git"
 	yaml "gopkg.in/yaml.v3"
 )
+
+func generateMinimalImageConfig(imageId string) string {
+	return strings.ReplaceAll(`
+version: 1
+images:
+  XXXIMAGE_IDXXX:
+    containerFile: Containerfile
+    baseImage:
+      registry: docker.io
+      repository: alpine
+      tag: latest
+    stagingLocation:
+      registry: docker.io
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - registry: docker.io
+        repository: devfbe/gipgee-test
+        tag: latest-integrationtest-a
+    updateCheckCommand: ["gipgee", "update-check"]
+    testCommand: ["./testImage.sh"]
+    assetsToWatch: []
+`, "XXXIMAGE_IDXXX", imageId)
+}
+
+func loadConfigFromString(configString string) (Config, error) {
+	config := Config{}
+	err := yaml.Unmarshal([]byte(configString), &config)
+	if err != nil {
+		return config, err
+	}
+	err = config.fillConfigWithDefaultsAndValidate()
+	return config, err
+}
+
+func TestImageIdValidation(t *testing.T) {
+	_, err := loadConfigFromString(generateMinimalImageConfig("foo"))
+	if err != nil {
+		t.Errorf("valid config loading failed with err: '%v'", err)
+	}
+
+	invalidFirstCharErrMsg := "image id '-foo' starts with '.' or '-' which is not allowed"
+	_, err = loadConfigFromString(generateMinimalImageConfig("-foo"))
+	if invalidFirstCharErrMsg != err.Error() {
+		t.Errorf("error '%v' does not match expected error '%v'", err, invalidFirstCharErrMsg)
+	}
+	invalidFirstCharErrMsg = "image id '.foo' starts with '.' or '-' which is not allowed"
+	_, err = loadConfigFromString(generateMinimalImageConfig(".foo"))
+	if invalidFirstCharErrMsg != err.Error() {
+		t.Errorf("error '%v' does not match expected error '%v'", err, invalidFirstCharErrMsg)
+	}
+}
 
 func TestConfig(t *testing.T) {
 	testYaml := `

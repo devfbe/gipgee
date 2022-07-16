@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -113,14 +114,38 @@ func LoadConfiguration(relativePath string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = fillConfigWithDefaultsAndValidate(&config)
+	err = config.fillConfigWithDefaultsAndValidate()
 	if err != nil {
 		return nil, err
 	}
 	return &config, nil
 }
 
-func fillConfigWithDefaultsAndValidate(config *Config) error {
+func (config *Config) fillConfigWithDefaultsAndValidate() error {
+
+	// First: validate the image id. The image id is used at many locations, especially passed to the gipgee
+	// execution wrapper commands so it gets directly rendered to the gitlab yaml files. For that reason, we
+	// must be careful with the allowed characters to avoid problems with shell escaping. Allowed characters
+	// are, for that reason, only: a-z, a-Z, 0-9, '_', '.' and '-'. The id may be used as container image tag,
+	// so we apply the following container image tag rules for the id, too:
+	// From: https://docs.docker.com/engine/reference/commandline/tag/
+	// A tag name must be valid ASCII and may contain lowercase and uppercase letters, digits, underscores, periods and dashes.
+	// A tag name may not start with a period or a dash and may contain a maximum of 128 characters.
+
+	validImageIdRegex := regexp.MustCompile(`^[0-9a-zA-Z-_.]+$`)
+	for imageId := range config.Images {
+		if !validImageIdRegex.MatchString(imageId) {
+			return fmt.Errorf("image id '%s' doesn't match the regex '^[0-9a-zA-Z-_.]+$' (at least one valid char, valid chars: characters, digits, dash, dot, underscore)", imageId)
+		}
+		if len(imageId) > 128 {
+			return fmt.Errorf("image id '%s' is longer than 128 characters which is not allowed", imageId)
+		}
+		if imageId[0:1] == "-" || imageId[0:1] == "." {
+			return fmt.Errorf("image id '%s' starts with '.' or '-' which is not allowed", imageId)
+		}
+
+	}
+
 	for imageId, image := range config.Images {
 
 		image.Id = imageId
@@ -195,7 +220,7 @@ func fillConfigWithDefaultsAndValidate(config *Config) error {
 			}
 		}
 
-		if (image.BaseImage == nil || image.BaseImage.Credentials == nil || image.BaseImage.Registry == nil || image.BaseImage.Repository == nil || image.BaseImage.Tag == nil) && config.Defaults.DefaultBaseImage == nil {
+		if (image.BaseImage == nil || image.BaseImage.Registry == nil || image.BaseImage.Repository == nil || image.BaseImage.Tag == nil) && config.Defaults.DefaultBaseImage == nil {
 			panic(fmt.Errorf("Image '%s' does not contain complete base image configuration but default base image is not defined", imageId))
 		}
 

@@ -49,7 +49,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			ignoredPaths = "--ignore-path=/var-orig"
 		}
 		kanikoScript = append(kanikoScript, "./.gipgee/gipgee image-build generate-kaniko-auth --config-file='"+params.ConfigFile+"' --image-id '"+imageToBuild+"'")
-		kanikoScript = append(kanikoScript, "/kaniko/executor "+ignoredPaths+" --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/"+*config.Images[imageToBuild].ContainerFile+" --build-arg=GIPGEE_BASE_IMAGE="+config.Images[imageToBuild].BaseImage.String()+" --destination "+config.Images[imageToBuild].StagingLocation.String())
+		kanikoScript = append(kanikoScript, "/kaniko/executor "+ignoredPaths+" --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/"+*config.Images[imageToBuild].ContainerFile+" --build-arg=GIPGEE_BASE_IMAGE="+config.Images[imageToBuild].BaseImage.String()+" --build-arg=GIPGEE_IMAGE_ID="+imageToBuild+" --destination "+config.Images[imageToBuild].StagingLocation.String())
 
 		buildStagingImageJob := pm.Job{
 			Name:   "🐋 Build staging image " + imageToBuild + " using kaniko",

@@ -2,6 +2,8 @@ package imagebuild
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	c "github.com/devfbe/gipgee/config"
 	"github.com/devfbe/gipgee/docker"
@@ -159,9 +161,52 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 	pipeline := pm.Pipeline{
 		Stages: []*pm.Stage{&allInOneStage},
 		Jobs:   stagingBuildJobs,
+		Variables: map[string]interface{}{
+			"DOCKER_AUTH_CONFIG": generateDockerAuthConfig(config),
+		},
 	}
+
 	return &pipeline
 
+}
+
+func generateDockerAuthConfig(config *c.Config) string {
+	env, exists := os.LookupEnv("DOCKER_AUTH_CONFIG")
+	dockerAuthConfig := &docker.DockerAuths{Auths: make(map[string]docker.DockerAuth)}
+	if exists {
+		log.Println("Extending existing env var DOCKER_AUTH_CONFIG with the necessary pull secrets for the build pipeline")
+		dockerAuthConfig = docker.LoadAuthConfigFromString(env)
+	} else {
+		log.Println("Creating new DOCKER_AUTH_CONFIG env var for the build pipeline")
+	}
+
+	// in the image build pipeline we - currently - only need the staging location as DOCKER_AUTH_CONFIG because
+	// only the test jobs download the images via gitlab. The release to staging skopeo job or the kaniko build
+	// both craft their credentials manually and do not depend on the DOCKER_AUTH_CONFIG
+	for imageId, imageConfig := range config.Images {
+		if imageConfig.StagingLocation.Credentials != nil {
+			_, exists := dockerAuthConfig.Auths[*imageConfig.StagingLocation.Registry]
+			if exists {
+				log.Printf("Image id '%s': auth for staging registry '%s' already exists in DOCKER_AUTH_CONFIG, not adding / overwriting (again)\n", imageId, *imageConfig.StagingLocation.Registry)
+				// Maybe check if the corresponding auth is the same as already configured and if not to yield a warning?
+			} else {
+				configUp, err := config.GetUserNamePassword(*imageConfig.StagingLocation.Credentials)
+				if err != nil {
+					panic(err)
+				}
+				up := docker.UsernamePassword{
+					UserName: configUp.Username,
+					Password: configUp.Password,
+				}
+				dockerAuthConfig.Auths[*imageConfig.StagingLocation.Registry] = up.ToDockerAuth()
+				log.Printf("Image id '%s': auth for staging registry '%s' added to DOCKER_AUTH_CONFIG", imageId, *imageConfig.StagingLocation.Registry)
+			}
+		} else {
+			log.Printf("Image id '%s' has no staging location auth configured, nothing to add to DOCKER_AUTH_CONFIG", imageId)
+		}
+	}
+
+	return dockerAuthConfig.ToJsonString()
 }
 
 func (params *GeneratePipelineCmd) Run() error {

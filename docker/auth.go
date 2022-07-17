@@ -19,6 +19,21 @@ type UsernamePassword struct {
 	Password string
 }
 
+func (up *UsernamePassword) ToDockerAuth() DockerAuth {
+	return DockerAuth{
+		Auth: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", up.UserName, up.Password))),
+	}
+}
+
+func LoadAuthConfigFromString(jsonString string) *DockerAuths {
+	dockerAuths := DockerAuths{}
+	err := json.Unmarshal([]byte(jsonString), &dockerAuths)
+	if err != nil {
+		panic(fmt.Errorf("unexpected error occurred while trying to parse the DOCKER_AUTH_CONFIG json env var ('%w')", err))
+	}
+	return &dockerAuths
+}
+
 func CreateAuth(authMap map[string]UsernamePassword) string {
 	authsMap := make(map[string]DockerAuth)
 	for registry, userpass := range authMap {
@@ -26,9 +41,7 @@ func CreateAuth(authMap map[string]UsernamePassword) string {
 		if patchedRegistry == "index.docker.io" {
 			patchedRegistry = "https://index.docker.io/v1/" // docker central registry compatability quirks
 		}
-		authsMap[patchedRegistry] = DockerAuth{
-			Auth: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", userpass.UserName, userpass.Password))),
-		}
+		authsMap[patchedRegistry] = userpass.ToDockerAuth()
 	}
 	auths := DockerAuths{
 		Auths: authsMap,
@@ -38,4 +51,12 @@ func CreateAuth(authMap map[string]UsernamePassword) string {
 		panic(err)
 	}
 	return string(bytes)
+}
+
+func (da *DockerAuths) ToJsonString() string {
+	jsonBytes, err := json.Marshal(da)
+	if err != nil {
+		panic(fmt.Errorf("unexpected error occurred while marshalling the docker auth to json: '%w'", err))
+	}
+	return string(jsonBytes)
 }

@@ -11,7 +11,24 @@ import (
 )
 
 func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool, params *GeneratePipelineCmd) *pm.Pipeline {
+
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
+	pipelineJobs := make([]*pm.Job, 0)
+	// If gitlab triggers a child pipeline with "strategy" depend and this child pipeline
+	// only contains jobs that have "when: manual" setting, in some versions gitlab keeps
+	// the parent pipeline in the "running" state and in other versions the trigger job
+	// in the pipeline fails with "unknown failure". So in this case we just add
+	// a "make gitlab happy job" that always runs so that the parent pipeline does not crash.
+	if !autoStart {
+		job := pm.Job{
+			Name:  "Make gitlab happy",
+			Stage: &allInOneStage,
+			Script: []string{
+				`echo "This job is just there to avoid that the parent pipeline fails. This workaround is necessary if all jobs in the generated pipeline are manual triggered jobs which do not automatically start."`,
+			},
+		}
+		pipelineJobs = append(pipelineJobs, &job)
+	}
 
 	var gipgeeImageCoordinates pm.ContainerImageCoordinates
 
@@ -41,7 +58,6 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		},
 	}
 
-	stagingBuildJobs := make([]*pm.Job, 0)
 	for _, imageToBuild := range imagesToBuild {
 
 		kanikoScript := make([]string, 0)
@@ -150,17 +166,17 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			Needs:  releaseJobNeeds,
 		}
 
-		stagingBuildJobs = append(stagingBuildJobs, &buildStagingImageJob, &performReleaseJob)
+		pipelineJobs = append(pipelineJobs, &buildStagingImageJob, &performReleaseJob)
 		for _, j := range releaseJobNeeds {
-			stagingBuildJobs = append(stagingBuildJobs, j.Job)
+			pipelineJobs = append(pipelineJobs, j.Job)
 		}
 	}
 
-	stagingBuildJobs = append(stagingBuildJobs, &copyGipgeeToArtifact)
+	pipelineJobs = append(pipelineJobs, &copyGipgeeToArtifact)
 
 	pipeline := pm.Pipeline{
 		Stages: []*pm.Stage{&allInOneStage},
-		Jobs:   stagingBuildJobs,
+		Jobs:   pipelineJobs,
 		Variables: map[string]interface{}{
 			"DOCKER_AUTH_CONFIG": generateDockerAuthConfig(config),
 		},

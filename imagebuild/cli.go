@@ -48,6 +48,7 @@ func (cmd *ExecStagingImageTestCmd) Run() error {
 	if len(*imageTestCommand) > 1 {
 		commandArgsString = append(commandArgsString, (*imageTestCommand)[1:]...)
 	}
+	commandArgsString = append(commandArgsString, cmd.ImageId)
 	executionCmd := exec.Command(commandString, commandArgsString...) // #nosec G204
 	executionCmd.Stderr = os.Stderr
 	executionCmd.Stdout = os.Stdout

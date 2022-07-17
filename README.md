@@ -41,6 +41,13 @@ The best thing the image update check command can do is in most cases:
 After the gipgee has processed the results of the update check pipeline, it will trigger an additional image rebuild pipeline which
 only rebuilds the images that have updates. The goal here is to be as resource efficient as possible and not to swamp your with unnecessary image registry.
 
+# Gitlab prequisites
+## Image pull policy for gitlab runner job containers
+One main goal of gipgee is to auto rebuild container images if there are updates. This images are normally
+uploaded to the same location (same registry, repository and tag) as the images built in a earlier
+build. Because the gipgee then downloads this images to
+perform update checks, it's mandatory that the image pull policy for this images is set to `Always`. If
+your Gitlab runner configuration uses default values, the `pull_policy` [is set to always by default](https://docs.gitlab.com/runner/configuration/advanced-configuration.html) and you have nothing to change.
 
 # Troubleshooting
 ## Known kaniko problems

@@ -20,7 +20,7 @@ func (params *GenerateKanikoAuthCmd) Run() error {
 		panic(err)
 	}
 
-	cfg, err := config.LoadConfiguration(params.ConfigFile)
+	cfg, err := config.LoadConfiguration(params.ConfigFileName)
 
 	if err != nil {
 		panic(err)

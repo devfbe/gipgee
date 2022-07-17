@@ -10,8 +10,8 @@ import (
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
-type imageBuildPipelineGenerator interface {
-	generatePipeline() *pm.Pipeline
+type ImageBuildPipelineGenerator interface {
+	GeneratePipeline() *pm.Pipeline
 }
 
 type imageBuildPipelineGeneratorImpl struct {
@@ -23,7 +23,17 @@ type imageBuildPipelineGeneratorImpl struct {
 	gipgeeImage   string
 }
 
-func (pipelineGenerator *imageBuildPipelineGeneratorImpl) generatePipeline() *pm.Pipeline {
+func NewBuildPipelineGenerator(config *c.Config, imagesToBuild []string, autoStart bool, pipelineFile string, configFile string, gipgeeImage string) ImageBuildPipelineGenerator {
+	return &imageBuildPipelineGeneratorImpl{
+		config:        config,
+		imagesToBuild: imagesToBuild,
+		autoStart:     autoStart,
+		configFile:    configFile,
+		gipgeeImage:   gipgeeImage,
+	}
+}
+
+func (pipelineGenerator *imageBuildPipelineGeneratorImpl) GeneratePipeline() *pm.Pipeline {
 
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
 	pipelineJobs := make([]*pm.Job, 0)
@@ -72,15 +82,19 @@ func (pipelineGenerator *imageBuildPipelineGeneratorImpl) generatePipeline() *pm
 	}
 
 	for _, imageToBuild := range pipelineGenerator.imagesToBuild {
-
+		log.Printf("Building image build jobs for image '%s'\n", imageToBuild)
 		kanikoScript := make([]string, 0)
 		ignoredPaths := ""
 		if pipelineGenerator.config.Quirks.KanikoMoveVarQuirk {
 			kanikoScript = append(kanikoScript, "mv /var /var-orig")
 			ignoredPaths = "--ignore-path=/var-orig"
 		}
-		kanikoScript = append(kanikoScript, "./.gipgee/gipgee image-build generate-kaniko-auth --config-file='"+pipelineGenerator.configFile+"' --image-id '"+imageToBuild+"'")
-		kanikoScript = append(kanikoScript, "/kaniko/executor "+ignoredPaths+" --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/"+*pipelineGenerator.config.Images[imageToBuild].ContainerFile+" --build-arg=GIPGEE_BASE_IMAGE="+pipelineGenerator.config.Images[imageToBuild].BaseImage.String()+" --build-arg=GIPGEE_IMAGE_ID="+imageToBuild+" --destination "+pipelineGenerator.config.Images[imageToBuild].StagingLocation.String())
+		containerFile := *pipelineGenerator.config.Images[imageToBuild].ContainerFile
+		baseImage := pipelineGenerator.config.Images[imageToBuild].BaseImage.String()
+		destination := pipelineGenerator.config.Images[imageToBuild].StagingLocation.String()
+
+		kanikoScript = append(kanikoScript, "./.gipgee/gipgee image-build generate-kaniko-auth --config-file-name='"+pipelineGenerator.configFile+"' --image-id '"+imageToBuild+"'")
+		kanikoScript = append(kanikoScript, "/kaniko/executor "+ignoredPaths+" --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/"+containerFile+" --build-arg=GIPGEE_BASE_IMAGE="+baseImage+" --build-arg=GIPGEE_IMAGE_ID="+imageToBuild+" --destination "+destination)
 
 		buildStagingImageJob := pm.Job{
 			Name:   "🐋 Build staging image " + imageToBuild + " using kaniko",
@@ -239,7 +253,7 @@ func generateDockerAuthConfig(config *c.Config) string {
 }
 
 func (params *GeneratePipelineCmd) Run() error {
-	config, err := c.LoadConfiguration(params.ConfigFile)
+	config, err := c.LoadConfiguration(params.ConfigFileName)
 	if err != nil {
 		return err
 	}
@@ -253,16 +267,16 @@ func (params *GeneratePipelineCmd) Run() error {
 		imagesToBuild = append(imagesToBuild, key)
 	}
 
-	var generator imageBuildPipelineGenerator = &imageBuildPipelineGeneratorImpl{
+	var generator ImageBuildPipelineGenerator = &imageBuildPipelineGeneratorImpl{
 		config:        config,
 		imagesToBuild: imagesToBuild,
 		autoStart:     true,
 		pipelineFile:  params.PipelineFile,
-		configFile:    params.ConfigFile,
+		configFile:    params.ConfigFileName,
 		gipgeeImage:   params.GipgeeImage,
 	}
 
-	pipeline := generator.generatePipeline()
+	pipeline := generator.GeneratePipeline()
 
 	err = pipeline.WritePipelineToFile(params.PipelineFile)
 	if err != nil {

@@ -2,8 +2,11 @@ package updatecheck
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/devfbe/gipgee/config"
+	"github.com/devfbe/gipgee/docker"
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
@@ -80,6 +83,7 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 					Variables: &map[string]interface{}{
 						"GIPGEE_CONFIG_FILE_NAME":              params.ConfigFileName,
 						"GIPGEE_UPDATE_CHECK_RESULT_FILE_PATH": resultFileLocation,
+						"DOCKER_AUTH_CONFIG":                   generateDockerAuthConfig(imageId, params.Config),
 					},
 				})
 			}
@@ -92,4 +96,30 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 		Variables: map[string]interface{}{},
 	}
 	return &pipeline
+}
+
+func generateDockerAuthConfig(imageId string, cfg *config.Config) string {
+	env, exists := os.LookupEnv("DOCKER_AUTH_CONFIG")
+	dockerAuthConfig := &docker.DockerAuths{Auths: make(map[string]docker.DockerAuth)}
+	if exists {
+		log.Printf("Extending existing env var DOCKER_AUTH_CONFIG with the necessary pull secrets for image '%s'\n", imageId)
+		dockerAuthConfig = docker.LoadAuthConfigFromString(env)
+	} else {
+		log.Printf("Creating new DOCKER_AUTH_CONFIG env var for the image update check for image '%s'\n", imageId)
+	}
+	for idx, releaseLocation := range cfg.Images[imageId].ReleaseLocations {
+		if releaseLocation.Credentials != nil {
+			log.Printf("Generating auth for registry '%s' for image '%s' - target location '%d'\n", *releaseLocation.Registry, imageId, idx)
+			configUp, err := cfg.GetUserNamePassword(*releaseLocation.Credentials)
+			if err != nil {
+				panic(err)
+			}
+			up := docker.UsernamePassword{
+				UserName: configUp.Username,
+				Password: configUp.Password,
+			}
+			dockerAuthConfig.Auths[*releaseLocation.Registry] = up.ToDockerAuth()
+		}
+	}
+	return dockerAuthConfig.ToJsonString()
 }

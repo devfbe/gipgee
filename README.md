@@ -41,3 +41,19 @@ The best thing the image update check command can do is in most cases:
 After the gipgee has processed the results of the update check pipeline, it will trigger an additional image rebuild pipeline which
 only rebuilds the images that have updates. The goal here is to be as resource efficient as possible and not to swamp your with unnecessary image registry.
 
+
+# Troubleshooting
+## Known kaniko problems
+Kaniko is the tool used by gipgee to build container images, because it can run as normal container and is - compared to "docker in docker" - not a security nightmare.
+
+### failed to write "security.capability" attribute
+If you run your gitlab runner jobs without additional
+capabilities, e.g. with RedHat UBI images there are problems when building with kaniko.
+
+Error messages like
+```
+error building image: error building stage: failed to get filesystem from image: failed to write "security.capability" attribute to "/usr/bin/newuidmap": operation not permitted
+``` 
+may appear and break the build. If this happens,
+you can add the `CAP_SETFCAP` capability [to the gitlab
+runner job containers](https://docs.gitlab.com/runner/configuration/advanced-configuration.html).

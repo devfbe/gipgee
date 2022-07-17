@@ -10,7 +10,20 @@ import (
 	pm "github.com/devfbe/gipgee/pipelinemodel"
 )
 
-func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart bool, params *GeneratePipelineCmd) *pm.Pipeline {
+type imageBuildPipelineGenerator interface {
+	generatePipeline() *pm.Pipeline
+}
+
+type imageBuildPipelineGeneratorImpl struct {
+	config        *c.Config
+	imagesToBuild []string
+	autoStart     bool
+	pipelineFile  string
+	configFile    string
+	gipgeeImage   string
+}
+
+func (pipelineGenerator *imageBuildPipelineGeneratorImpl) generatePipeline() *pm.Pipeline {
 
 	allInOneStage := pm.Stage{Name: "🏗️ All in One 🧪"}
 	pipelineJobs := make([]*pm.Job, 0)
@@ -19,7 +32,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 	// the parent pipeline in the "running" state and in other versions the trigger job
 	// in the pipeline fails with "unknown failure". So in this case we just add
 	// a "make gitlab happy job" that always runs so that the parent pipeline does not crash.
-	if !autoStart {
+	if !pipelineGenerator.autoStart {
 		job := pm.Job{
 			Name:  "Make gitlab happy",
 			Stage: &allInOneStage,
@@ -32,14 +45,14 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 
 	var gipgeeImageCoordinates pm.ContainerImageCoordinates
 
-	if params.GipgeeImage == "" {
+	if pipelineGenerator.gipgeeImage == "" {
 		gipgeeImageCoordinates = pm.ContainerImageCoordinates{
 			Registry:   "docker.io",
 			Repository: "devfbe/gipgee",
 			Tag:        "latest",
 		}
 	} else {
-		coords, err := pm.ContainerImageCoordinatesFromString(params.GipgeeImage)
+		coords, err := pm.ContainerImageCoordinatesFromString(pipelineGenerator.gipgeeImage)
 		if err != nil {
 			panic(err)
 		}
@@ -58,16 +71,16 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		},
 	}
 
-	for _, imageToBuild := range imagesToBuild {
+	for _, imageToBuild := range pipelineGenerator.imagesToBuild {
 
 		kanikoScript := make([]string, 0)
 		ignoredPaths := ""
-		if config.Quirks.KanikoMoveVarQuirk {
+		if pipelineGenerator.config.Quirks.KanikoMoveVarQuirk {
 			kanikoScript = append(kanikoScript, "mv /var /var-orig")
 			ignoredPaths = "--ignore-path=/var-orig"
 		}
-		kanikoScript = append(kanikoScript, "./.gipgee/gipgee image-build generate-kaniko-auth --config-file='"+params.ConfigFile+"' --image-id '"+imageToBuild+"'")
-		kanikoScript = append(kanikoScript, "/kaniko/executor "+ignoredPaths+" --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/"+*config.Images[imageToBuild].ContainerFile+" --build-arg=GIPGEE_BASE_IMAGE="+config.Images[imageToBuild].BaseImage.String()+" --build-arg=GIPGEE_IMAGE_ID="+imageToBuild+" --destination "+config.Images[imageToBuild].StagingLocation.String())
+		kanikoScript = append(kanikoScript, "./.gipgee/gipgee image-build generate-kaniko-auth --config-file='"+pipelineGenerator.configFile+"' --image-id '"+imageToBuild+"'")
+		kanikoScript = append(kanikoScript, "/kaniko/executor "+ignoredPaths+" --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/"+*pipelineGenerator.config.Images[imageToBuild].ContainerFile+" --build-arg=GIPGEE_BASE_IMAGE="+pipelineGenerator.config.Images[imageToBuild].BaseImage.String()+" --build-arg=GIPGEE_IMAGE_ID="+imageToBuild+" --destination "+pipelineGenerator.config.Images[imageToBuild].StagingLocation.String())
 
 		buildStagingImageJob := pm.Job{
 			Name:   "🐋 Build staging image " + imageToBuild + " using kaniko",
@@ -79,7 +92,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 				Artifacts: true,
 			}},
 		}
-		imageConfig := config.Images[imageToBuild]
+		imageConfig := pipelineGenerator.config.Images[imageToBuild]
 		stagingImageCoordinates, err := pm.ContainerImageCoordinatesFromString(imageConfig.StagingLocation.String())
 
 		if err != nil {
@@ -108,7 +121,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 					},
 				},
 				Variables: &map[string]interface{}{
-					"GIPGEE_CONFIG_FILE_NAME": params.ConfigFile,
+					"GIPGEE_CONFIG_FILE_NAME": pipelineGenerator.configFile,
 				},
 			}
 			releaseJobNeeds = append(releaseJobNeeds, pm.JobNeeds{Job: &stagingTestJob})
@@ -117,7 +130,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		authMap := make(map[string]docker.UsernamePassword, 0)
 
 		if imageConfig.BaseImage.Credentials != nil {
-			up, err := config.GetUserNamePassword(*imageConfig.BaseImage.Credentials)
+			up, err := pipelineGenerator.config.GetUserNamePassword(*imageConfig.BaseImage.Credentials)
 			if err != nil {
 				panic(err)
 			}
@@ -127,7 +140,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 			}
 		}
 		if imageConfig.StagingLocation.Credentials != nil {
-			up, err := config.GetUserNamePassword(*imageConfig.StagingLocation.Credentials)
+			up, err := pipelineGenerator.config.GetUserNamePassword(*imageConfig.StagingLocation.Credentials)
 			if err != nil {
 				panic(err)
 			}
@@ -140,7 +153,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		releaseScript := []string{}
 		skopeoSrcCredentials := ""
 		if imageConfig.StagingLocation.Credentials != nil {
-			up, err := config.GetUserNamePassword(*imageConfig.StagingLocation.Credentials)
+			up, err := pipelineGenerator.config.GetUserNamePassword(*imageConfig.StagingLocation.Credentials)
 			if err != nil {
 				panic(err)
 			}
@@ -150,7 +163,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		for _, releaseLocation := range imageConfig.ReleaseLocations {
 			skopeoDestCredentials := ""
 			if releaseLocation.Credentials != nil {
-				up, err := config.GetUserNamePassword(*releaseLocation.Credentials)
+				up, err := pipelineGenerator.config.GetUserNamePassword(*releaseLocation.Credentials)
 				if err != nil {
 					panic(err)
 				}
@@ -178,7 +191,7 @@ func GenerateReleasePipeline(config *c.Config, imagesToBuild []string, autoStart
 		Stages: []*pm.Stage{&allInOneStage},
 		Jobs:   pipelineJobs,
 		Variables: map[string]interface{}{
-			"DOCKER_AUTH_CONFIG": generateDockerAuthConfig(config),
+			"DOCKER_AUTH_CONFIG": generateDockerAuthConfig(pipelineGenerator.config),
 		},
 	}
 
@@ -240,7 +253,17 @@ func (params *GeneratePipelineCmd) Run() error {
 		imagesToBuild = append(imagesToBuild, key)
 	}
 
-	pipeline := GenerateReleasePipeline(config, imagesToBuild, true, params) // True only on manual pipeline..
+	var generator imageBuildPipelineGenerator = &imageBuildPipelineGeneratorImpl{
+		config:        config,
+		imagesToBuild: imagesToBuild,
+		autoStart:     true,
+		pipelineFile:  params.PipelineFile,
+		configFile:    params.ConfigFile,
+		gipgeeImage:   params.GipgeeImage,
+	}
+
+	pipeline := generator.generatePipeline()
+
 	err = pipeline.WritePipelineToFile(params.PipelineFile)
 	if err != nil {
 		panic(err)

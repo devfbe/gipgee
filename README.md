@@ -1,5 +1,5 @@
 
-<p align="center"><img src="https://github.com/devfbe/gipgee/blob/80baecfec583c237b5f64ffb26504e042c09d524/branding/gipgeegopher-small.png?raw=true" alt="gipgee logo" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/devfbe/gipgee/main/branding/gipgeegopher-small.png" alt="gipgee logo" /></p>
 
 # gipgee
 The Gitlab Image Pipeline Generator (Enhanced Edition)

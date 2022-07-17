@@ -5,7 +5,118 @@
 The Gitlab Image Pipeline Generator (Enhanced Edition)
 
 ## Work in progress
-The current version of Gipgee is only able to release itself, the project is currently under development. I already implemented a tool like the gipgee for my daytime job, but now I want to rebuild it from scratch as open source project - thats the reason why this is the "enhanced edition".
+* [✅] Basic image build pipeline
+* [⚙️ WIP] Parent / Child images in image build pipelines
+* [📅 Planned] Feature branch builds
+* [📅 Planned] Update Check Pipeline
+* [📅 Planned] Gipgee self contained update check for Alpine, RedHat and Debian based distributions
+
+The current version of Gipgee is only able to generate it's own self release pipeline (which is partially used as integration test). Additionally, it can create a basic image build pipeline.
+
+## Configuration
+The configuration currently can change. If you want to try gipgee you have to setup the following pipeline / config
+
+### .gitlab-ci.yml
+```
+stages:
+  - build and run test pipeline
+
+run pipeline generator:
+  image: docker.io/devfbe/gipgee:latest
+  stage: build and run test pipeline
+  script:
+    - gipgee image-build generate-pipeline
+  artifacts:
+    paths:
+      - .gipgee-gitlab-ci.yml
+
+run generated pipeline:
+  stage: build and run test pipeline
+  trigger:
+    include:
+      - artifact: .gipgee-gitlab-ci.yml
+        job: run pipeline generator
+    strategy: depend
+  needs:
+    - job: run pipeline generator
+      artifacts: true
+```
+
+This pipeline creates and runs a image build pipeline (all branches, all events). 
+
+### gipgee.yml
+This is a sample configuration of one of my test projects.
+```
+version: 1
+registryCredentials:
+  # define credentials named dockerio, fed from the DOCKER_IO_USERNAME/DOCKER_IO_PASSWORD env vars
+  dockerio:
+    usernameVarName: DOCKER_IO_USERNAME
+    passwordVarName: DOCKER_IO_PASSWORD
+# You can defaults for all images, but you don't have to.
+# If you define more than one image, it is often useful to define defaults 
+defaults:
+  # The staging registry will be used for the staging images
+  # After a successful test, the images will be copied to the release location(s).
+  # Currently, gipgee does not support cleaning up the staging location, so you
+  # have to remove / clean the staging registry periodically. Not deleting the staging
+  # image gives you the opportunity to download and debug the staging image if something goes
+  # wrong with in the image test jobs
+  defaultStagingRegistry: index.docker.io
+  defaultReleaseRegistry: index.docker.io
+  # An updateCheckCommand has to be defined for the upcoming update check pipeline feature.
+  # Just add gipgee-update-check or sth. like that to this array to make the config parser happy 
+  defaultUpdateCheckCommand: ["gipgee-update-check"]
+  # This test command will be executed in the staging image test jobs. It's an array so that you
+  # can pass multiple arguments safely. gipgee will automatically append the image id as last parameter.
+  defaultTestCommand: ["./testContainerImage.sh"]
+  # Leave this as is, it's a feature that will be used for the feature branch image builds later.
+  defaultAssetsToWatch: []
+  # The default container file to use (commonly known as Dockerfile)
+  # The build arg GIPGEE_BASE_IMAGE with the value of the image id will be passed
+  # for the image build. It is highly recommended to use the GIPGEE_BASE_IMAGE build arg in the
+  # FROM directive in your Containerfile (ARG GIPGEE_BASE_IMAGE followed by FROM $GIPGEE_BASE_IMAGE)
+  defaultContainerFile: Containerfile
+  # The default base image, you can define registry, repository and tag or only parts
+  # Of the default base images.
+  defaultBaseImage:
+    registry: index.docker.io
+  # the default credentials to use for the staging / release registry.
+  defaultStagingRegistryCredentials: dockerio
+  defaultReleaseRegistryCredentials: dockerio
+images:
+
+  gipgee-alpine-test:
+    baseImage:
+      repository: alpine
+      tag: latest
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: gipgee-alpine-test
+
+  gipgee-redhat-ubi-test:
+    baseImage:
+      registry: registry.access.redhat.com
+      repository: ubi8/ubi
+      tag: latest
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: gipgee-redhat-ubi-test
+
+  gipgee-debian-test:
+    baseImage:
+      repository: debian
+      tag: latest
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: gipgee-debian-test
+```
 
 ## What will Gipgee be?
 The Gipgee will be a tool for dynamically creating container image build and update pipelines for gitlab, based on a yaml configuration.

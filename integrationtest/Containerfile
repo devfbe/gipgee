@@ -1,6 +1,6 @@
 ARG GIPGEE_BASE_IMAGE
 FROM $GIPGEE_BASE_IMAGE
-RUN apk --no-cache upgrade
-RUN apk add curl wget
-COPY integrationtest/gipgee-update-check.sh /sbin/gipgee-update-check
+ARG GIPGEE_IMAGE_ID
+COPY integrationtest/installPackages.sh /assets/installPackages.sh
+RUN /assets/installPackages.sh $GIPGEE_IMAGE_ID
 

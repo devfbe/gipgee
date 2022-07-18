@@ -8,9 +8,23 @@ import (
 	cfg "github.com/devfbe/gipgee/config"
 )
 
+type AutoUpdateCheckCmd struct {
+	ImageId        string `arg:"" required:""`
+	ResultFilePath string `arg:"" required:""`
+}
+
+func (*AutoUpdateCheckCmd) Help() string {
+	return "This command tries to auto detect your currently used package manager and performs an update check if successful"
+}
+
+func (cmd *AutoUpdateCheckCmd) Run() error {
+	return NewAutoUpdateChecker(cmd.ImageId, cmd.ResultFilePath).Run()
+}
+
 type UpdateCheckCmd struct {
 	GeneratePipeline GeneratePipelineCmd `cmd:""`
 	ExecUpdateCheck  ExecUpdateCheckCmd  `cmd:""`
+	AutoUpdateCheck  AutoUpdateCheckCmd  `cmd:""`
 }
 
 type GeneratePipelineCmd struct {
@@ -65,7 +79,7 @@ func (cmd *ExecUpdateCheckCmd) Run() error {
 	if len(*updateCheckCommand) > 1 {
 		commandArgsString = append(commandArgsString, (*updateCheckCommand)[1:]...)
 	}
-	commandArgsString = append(commandArgsString, cmd.ResultFilePath)
+	commandArgsString = append(commandArgsString, cmd.ImageId, cmd.ResultFilePath)
 	executionCmd := exec.Command(commandString, commandArgsString...) // #nosec G204
 	executionCmd.Stderr = os.Stderr
 	executionCmd.Stdout = os.Stdout

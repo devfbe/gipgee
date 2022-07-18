@@ -9,7 +9,7 @@ defaults:
   defaultStagingRegistry: index.docker.io
   defaultReleaseRegistry: index.docker.io
   defaultContainerFile: integrationtest/Containerfile
-  defaultUpdateCheckCommand: ["gipgee-update-check"]
+  defaultUpdateCheckCommand: [./gipgee, update-check, auto-update-check]
   defaultTestCommand: ["integrationtest/test.sh"]
   defaultAssetsToWatch: ["integrationtest/*"]
   defaultBaseImage:
@@ -22,6 +22,7 @@ defaults:
   defaultStagingRegistryCredentials: dockerio
   defaultReleaseRegistryCredentials: dockerio
 images:
+
   myAlpine:
     baseImage:
       repository: alpine
@@ -30,6 +31,37 @@ images:
       repository: devfbe/gipgee-test
     releaseLocations:
       - repository: devfbe/gipgee-test
-        tag: latest-integrationtest-a
+        tag: latest-integrationtest-alpine-a
       - repository: devfbe/gipgee-test
-        tag: latest-integrationtest-b
+        tag: latest-integrationtest-alpine-b
+
+  myUBI:
+    baseImage:
+      registry: registry.access.redhat.com
+      repository: ubi8/ubi-minimal
+      tag: latest
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: latest-integrationtest-ubi
+
+  myDebian:
+    baseImage:
+      repository: debian
+      tag: stable-slim
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: latest-integrationtest-debian
+
+  myUbuntu:
+    baseImage:
+      repository: ubuntu
+      tag: 22.04
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: latest-integrationtest-ubuntu

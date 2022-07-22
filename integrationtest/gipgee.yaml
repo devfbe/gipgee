@@ -65,3 +65,54 @@ images:
     releaseLocations:
       - repository: devfbe/gipgee-test
         tag: latest-integrationtest-ubuntu
+
+  # Non root images below, they are in a parent child relation
+  # with the images declared above.
+
+  myAlpine-non-root:
+    containerFile: "integrationtest/Containerfile.non-root"
+    baseImage:
+      repository: devfbe/gipgee-test
+      tag: latest-integrationtest-alpine-b
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: latest-integrationtest-alpine-b-non-root
+    updateCheckCommand: []
+
+  myUBI-non-root:
+    containerFile: "integrationtest/Containerfile.non-root"
+    baseImage:
+      repository: devfbe/gipgee-test
+      tag: latest-integrationtest-ubi
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: latest-integrationtest-ubi-non-root
+    updateCheckCommand: []
+
+  myDebian-non-root:
+    containerFile: "integrationtest/Containerfile.non-root"
+    baseImage:
+      repository: devfbe/gipgee-test
+      tag: latest-integrationtest-debian
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: latest-integrationtest-debian-non-root
+    updateCheckCommand: []
+
+  myUbuntu-non-root:
+    containerFile: "integrationtest/Containerfile.non-root"
+    baseImage:
+      repository: devfbe/gipgee-test
+      tag: latest-integrationtest-ubuntu
+    stagingLocation:
+      repository: devfbe/gipgee-test
+    releaseLocations:
+      - repository: devfbe/gipgee-test
+        tag: latest-integrationtest-ubuntu-non-root
+    updateCheckCommand: []

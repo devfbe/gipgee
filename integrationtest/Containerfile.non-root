@@ -1,0 +1,6 @@
+ARG GIPGEE_BASE_IMAGE
+FROM $GIPGEE_BASE_IMAGE
+COPY integrationtest/createAppUser.sh /tmp/createAppUser.sh
+ARG GIPGEE_IMAGE_ID
+RUN /tmp/createAppUser.sh $GIPGEE_IMAGE_ID
+USER app

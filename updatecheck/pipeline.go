@@ -64,7 +64,7 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 			resultFileLocation := fmt.Sprintf("/tmp/gipgee-update-check-result-%s-release-location-%d", imageId, idx)
 			imageUpdateCheckResultFiles[imageId] = append(imageUpdateCheckResultFiles[imageId], resultFileLocation)
 
-			if imageConfig.UpdateCheckCommand != nil {
+			if len(*imageConfig.UpdateCheckCommand) > 0 {
 				pipelineJobs = append(pipelineJobs, &pm.Job{
 					Name:   fmt.Sprintf("Update check %s/%d", imageId, idx),
 					Stage:  &ai1Stage,
@@ -86,6 +86,8 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 						"DOCKER_AUTH_CONFIG":                   generateDockerAuthConfig(imageId, params.Config),
 					},
 				})
+			} else {
+				log.Printf("Not generating update check job(s) for image '%s' because update check command is empty\n", imageId)
 			}
 		}
 	}

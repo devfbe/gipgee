@@ -252,7 +252,7 @@ func (config *Config) fillConfigWithDefaultsAndValidate() error {
 			if config.Defaults.DefaultUpdateCheckCommand != nil {
 				image.UpdateCheckCommand = config.Defaults.DefaultUpdateCheckCommand
 			} else {
-				return errors.New("image update check command not defined and no default given")
+				return errors.New("image update check command not defined and no default given. If you do not want to define an image update command, just set it to '[]'")
 			}
 		}
 

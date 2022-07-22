@@ -14,6 +14,7 @@ defaults:
   defaultAssetsToWatch: ["integrationtest/*"]
   defaultBaseImage:
     registry: index.docker.io
+    credentials: dockerio
   defaultBuildArgs:
     - key: "INTEGRATION_TEST_ARG_FOO"
       value: "bar"

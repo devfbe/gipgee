@@ -51,6 +51,31 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 	}
 	pipelineJobs = append(pipelineJobs, &copyGipgeeAsArtifact)
 
+	skopeoResultLocation := "gipgee-skopeo-result.json"
+	skopeoUpdateCheckJob := pm.Job{
+		Name:  "skopeo update check",
+		Stage: &ai1Stage,
+		Image: &config.SkopeoImage,
+		Script: []string{
+			"./gipgee update-check perform-skopeo-update-check",
+		},
+		Variables: &map[string]interface{}{
+			"GIPGEE_CONFIG_FILE_NAME":                params.ConfigFileName,
+			"GIPGEE_UPDATE_CHECK_SKOPEO_RESULT_PATH": skopeoResultLocation,
+		},
+		Needs: []pm.JobNeeds{
+			{
+				Job:       &copyGipgeeAsArtifact,
+				Artifacts: true,
+			},
+		},
+		Artifacts: &pm.JobArtifacts{
+			Paths: []string{skopeoResultLocation},
+		},
+	}
+
+	pipelineJobs = append(pipelineJobs, &skopeoUpdateCheckJob)
+
 	imageUpdateCheckResultFiles := map[string][]string{}
 
 	for imageId, imageConfig := range params.Config.Images {
@@ -78,6 +103,10 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 						{
 							Job:       &copyGipgeeAsArtifact,
 							Artifacts: true,
+						},
+						{
+							Job:       &skopeoUpdateCheckJob,
+							Artifacts: false,
 						},
 					},
 					Variables: &map[string]interface{}{

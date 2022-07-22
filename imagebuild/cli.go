@@ -15,12 +15,12 @@ type ImageBuildCmd struct {
 
 type GeneratePipelineCmd struct {
 	PipelineFile   string `help:"Set the name of the pipeline file" env:"GIPGEE_PIPELINE_FILENAME" default:".gipgee-gitlab-ci.yml"`
-	ConfigFileName string `help:"Set the name of the gipgee config file" env:"GIPGEE_CONFIG_FILENAME" default:"gipgee.yml"`
+	ConfigFileName string `help:"Set the name of the gipgee config file" env:"GIPGEE_CONFIG_FILE_NAME" default:"gipgee.yml"`
 	GipgeeImage    string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
 }
 
 type GenerateKanikoAuthCmd struct {
-	ConfigFileName string `required:"" env:"GIPGEE_CONFIG_FILENAME"`
+	ConfigFileName string `required:"" env:"GIPGEE_CONFIG_FILE_NAME"`
 	ImageId        string `required:""`
 }
 

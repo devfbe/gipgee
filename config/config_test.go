@@ -245,7 +245,7 @@ func TestCredentials(t *testing.T) {
 
 	assertStringEquals(*c.Defaults.DefaultStagingRegistryCredentials, "staging", t)
 	assertStringEquals(*c.Defaults.DefaultReleaseRegistryCredentials, "localDockerAuthConfig", t)
-	assertStringEquals(*c.Defaults.DefaultBaseImageRegistryCredentials, "dockerAuthBaseImages", t)
+	assertStringEquals(*c.Defaults.DefaultBaseImage.Credentials, "dockerAuthBaseImages", t)
 
 	assertStringEquals(*c.RegistryCredentials["staging"].UsernameVarName, "FOO", t)
 	assertStringEquals(*c.RegistryCredentials["staging"].PasswordVarName, "BAR", t)

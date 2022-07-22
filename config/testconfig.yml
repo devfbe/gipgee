@@ -19,6 +19,7 @@ defaults:
     registry: thebaseimageregistry.example.com
     repository: thebaseimage
     tag: latest
+    credentials: dockerAuthBaseImages
   defaultBuildArgs:
     - key: "default-build-arg-a"
       value: "default-build-arg-value-a"
@@ -26,7 +27,6 @@ defaults:
       value: "default-build-arg-value-b"
   defaultStagingRegistryCredentials: staging
   defaultReleaseRegistryCredentials: localDockerAuthConfig
-  defaultBaseImageRegistryCredentials: dockerAuthBaseImages
 images:
   imageWithoutDefaults:
     containerFile: Containerfile.withoutDefaults

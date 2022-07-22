@@ -40,17 +40,16 @@ type BuildArg struct {
 }
 
 type Defaults struct {
-	DefaultStagingRegistry              *string        `yaml:"defaultStagingRegistry,omitempty"`
-	DefaultReleaseRegistry              *string        `yaml:"defaultReleaseRegistry,omitempty"`
-	DefaultContainerFile                *string        `yaml:"defaultContainerFile,omitempty"`
-	DefaultStagingRegistryCredentials   *string        `yaml:"defaultStagingRegistryCredentials,omitempty"`
-	DefaultBaseImageRegistryCredentials *string        `yaml:"defaultBaseImageRegistryCredentials,omitempty"`
-	DefaultReleaseRegistryCredentials   *string        `yaml:"defaultReleaseRegistryCredentials"`
-	DefaultUpdateCheckCommand           *[]string      `yaml:"defaultUpdateCheckCommand,omitempty"`
-	DefaultTestCommand                  *[]string      `yaml:"defaultTestCommand,omitempty"`
-	DefaultAssetsToWatch                *[]string      `yaml:"defaultAssetsToWatch,omitempty"`
-	DefaultBaseImage                    *ImageLocation `yaml:"defaultBaseImage,omitempty"`
-	DefaultBuildArgs                    *[]BuildArg    `yaml:"defaultBuildArgs,omitempty"`
+	DefaultStagingRegistry            *string        `yaml:"defaultStagingRegistry,omitempty"`
+	DefaultReleaseRegistry            *string        `yaml:"defaultReleaseRegistry,omitempty"`
+	DefaultContainerFile              *string        `yaml:"defaultContainerFile,omitempty"`
+	DefaultStagingRegistryCredentials *string        `yaml:"defaultStagingRegistryCredentials,omitempty"`
+	DefaultReleaseRegistryCredentials *string        `yaml:"defaultReleaseRegistryCredentials"`
+	DefaultUpdateCheckCommand         *[]string      `yaml:"defaultUpdateCheckCommand,omitempty"`
+	DefaultTestCommand                *[]string      `yaml:"defaultTestCommand,omitempty"`
+	DefaultAssetsToWatch              *[]string      `yaml:"defaultAssetsToWatch,omitempty"`
+	DefaultBaseImage                  *ImageLocation `yaml:"defaultBaseImage,omitempty"`
+	DefaultBuildArgs                  *[]BuildArg    `yaml:"defaultBuildArgs,omitempty"`
 }
 
 type ImageLocation struct {
@@ -244,8 +243,8 @@ func (config *Config) fillConfigWithDefaultsAndValidate() error {
 			}
 		}
 
-		if image.BaseImage.Credentials == nil && config.Defaults.DefaultBaseImageRegistryCredentials != nil {
-			image.BaseImage.Credentials = config.Defaults.DefaultBaseImageRegistryCredentials
+		if image.BaseImage.Credentials == nil && config.Defaults.DefaultBaseImage != nil {
+			image.BaseImage.Credentials = config.Defaults.DefaultBaseImage.Credentials
 		}
 
 		if image.UpdateCheckCommand == nil {

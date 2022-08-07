@@ -128,7 +128,7 @@ func stringSliceEquals(a []string, b []string) bool {
 }
 
 func performRedHatUpdateCheck(microdnfOrYum string, resultFilePath string) error {
-	performUpdateCheckCommand([]string{"rpm", "-qa"}, [][]string{{microdnfOrYum, "upgrade"}}, resultFilePath)
+	performUpdateCheckCommand([]string{"rpm", "-qa"}, [][]string{{microdnfOrYum, "-y", "upgrade"}}, resultFilePath)
 	return nil
 }
 

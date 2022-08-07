@@ -14,9 +14,10 @@ type ImageBuildCmd struct {
 }
 
 type GeneratePipelineCmd struct {
-	PipelineFile   string `help:"Set the name of the pipeline file" env:"GIPGEE_PIPELINE_FILENAME" default:".gipgee-gitlab-ci.yml"`
-	ConfigFileName string `help:"Set the name of the gipgee config file" env:"GIPGEE_CONFIG_FILE_NAME" default:"gipgee.yml"`
-	GipgeeImage    string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
+	PipelineFile       string `help:"Set the name of the pipeline file" env:"GIPGEE_PIPELINE_FILENAME" default:".gipgee-gitlab-ci.yml"`
+	ConfigFileName     string `help:"Set the name of the gipgee config file" env:"GIPGEE_CONFIG_FILE_NAME" default:"gipgee.yml"`
+	GipgeeImage        string `help:"Overwrite the gipgee container image" env:"GIPGEE_OVERWRITE_GIPGEE_IMAGE" optional:""`
+	ImageSelectionFile string `help:"Specify an image selection file which manually selects the images to be rebuilt. Used by the update check pipeline, there should be no need to use it manually"`
 }
 
 type GenerateKanikoAuthCmd struct {

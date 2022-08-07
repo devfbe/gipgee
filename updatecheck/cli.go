@@ -201,7 +201,12 @@ func (cmd *GenerateImageRebuildFileCmd) Run() error {
 		panic(err)
 	}
 	log.Printf("Images to rebuild (image selection file content: '%s')\n", imagesToRebuildJson)
-	// TODO Implement
+	rebuildFileName := "gipgee-image-rebuild-file.json" // TODO make as param
+	log.Printf("Writing json to file '%s'\n", rebuildFileName)
+	err = os.WriteFile(rebuildFileName, imagesToRebuildJson, 0600)
+	if err != nil {
+		panic(err)
+	}
 	return nil
 }
 

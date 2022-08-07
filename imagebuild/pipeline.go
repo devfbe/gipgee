@@ -1,6 +1,7 @@
 package imagebuild
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -28,6 +29,7 @@ func NewBuildPipelineGenerator(config *c.Config, imagesToBuild []string, autoSta
 		config:        config,
 		imagesToBuild: imagesToBuild,
 		autoStart:     autoStart,
+		pipelineFile:  pipelineFile,
 		configFile:    configFile,
 		gipgeeImage:   gipgeeImage,
 	}
@@ -263,18 +265,30 @@ func (params *GeneratePipelineCmd) Run() error {
 	*/
 
 	imagesToBuild := make([]string, 0)
-	for key := range config.Images {
-		imagesToBuild = append(imagesToBuild, key)
+	if params.ImageSelectionFile != "" {
+		log.Printf("Image selection file defined ('%s'), loading image selection.\n", params.ImageSelectionFile)
+		bytes, err := os.ReadFile(params.ImageSelectionFile)
+		if err != nil {
+			panic(err)
+		}
+		imagesToLoadMap := make(map[string]bool, 0)
+		err = json.Unmarshal(bytes, &imagesToLoadMap)
+		if err != nil {
+			panic(err)
+		}
+		for key := range imagesToLoadMap {
+			log.Printf("Added image with id '%s'\n", key)
+			imagesToBuild = append(imagesToBuild, key)
+		}
+	} else {
+		for key := range config.Images {
+			imagesToBuild = append(imagesToBuild, key)
+		}
 	}
 
-	var generator ImageBuildPipelineGenerator = &imageBuildPipelineGeneratorImpl{
-		config:        config,
-		imagesToBuild: imagesToBuild,
-		autoStart:     true,
-		pipelineFile:  params.PipelineFile,
-		configFile:    params.ConfigFileName,
-		gipgeeImage:   params.GipgeeImage,
-	}
+	var generator = NewBuildPipelineGenerator(
+		config, imagesToBuild, true, params.PipelineFile, params.ConfigFileName, params.GipgeeImage,
+	)
 
 	pipeline := generator.GeneratePipeline()
 

@@ -131,17 +131,49 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 		})
 	}
 	generateRebuildPipelineJob := pm.Job{
-		Name:   "🛠️ Generate pipeline for rebuilds",
-		Stage:  &ai1Stage,
-		Script: []string{"./gipgee update-check generate-image-rebuild-file"},
-		Needs:  rebuildPipelineDependencies,
+		Name:  "🛠️ Generate pipeline for rebuilds",
+		Stage: &ai1Stage,
+		Script: []string{
+			"./gipgee update-check generate-image-rebuild-file",
+			"./gipgee image-build generate-pipeline --image-selection-file=gipgee-image-rebuild-file.json",
+		},
+		Needs: rebuildPipelineDependencies,
 		Variables: &map[string]interface{}{
 			"GIPGEE_CONFIG_FILE_NAME":                params.ConfigFileName,
 			"GIPGEE_UPDATE_CHECK_SKOPEO_RESULT_PATH": skopeoResultLocation,
 		},
+		Artifacts: &pm.JobArtifacts{
+			Paths: []string{
+				".gipgee-gitlab-ci.yml",
+			},
+		},
 	}
 
 	pipelineJobs = append(pipelineJobs, &generateRebuildPipelineJob)
+
+	if params.SkipRebuild {
+		log.Println("Skip rebuild activated, not generating trigger job which starts the rebuild pipeline.")
+	} else {
+		triggerJob := pm.Job{
+			Name:  "🛫 Trigger rebuild pipeline",
+			Stage: &ai1Stage,
+			Trigger: &pm.JobTrigger{
+				Include: &pm.JobTriggerInclude{
+					Artifact: ".gipgee-gitlab-ci.yml",
+					Job:      &generateRebuildPipelineJob,
+				},
+				Strategy: "depend",
+			},
+			Needs: []pm.JobNeeds{
+				{
+					Job:       &generateRebuildPipelineJob,
+					Artifacts: true,
+				},
+			},
+		}
+
+		pipelineJobs = append(pipelineJobs, &triggerJob)
+	}
 
 	pipeline := pm.Pipeline{
 		Stages:    []*pm.Stage{&ai1Stage},

@@ -3,8 +3,7 @@ package pipelinemodel
 import (
 	"errors"
 	"fmt"
-	"net/url"
-	"path"
+	"path/filepath"
 	"strings"
 
 	yaml "gopkg.in/yaml.v3"
@@ -56,13 +55,11 @@ func (c *ContainerImageCoordinates) String() string {
 }
 
 func (coordinates *ContainerImageCoordinates) MarshalYAML() (interface{}, error) {
-	u, err := url.Parse(coordinates.Registry)
-	if err != nil {
-		return nil, err
-	}
-	u.Path = path.Join(u.Path, coordinates.Repository)
-	toReturn := u.String() + ":" + coordinates.Tag
-	return toReturn, nil
+	// We don't use the url parsing here because the container
+	// coordinates are NOT a valid url (there is no scheme:// at
+	// the beginning, so just use the filepath)
+	joined := filepath.Join(coordinates.Registry, coordinates.Repository) + ":" + coordinates.Tag
+	return joined, nil
 }
 
 func (pipeline *Pipeline) MarshalYAML() (interface{}, error) {

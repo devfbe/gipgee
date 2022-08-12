@@ -5,9 +5,12 @@ registryCredentials:
   dockerio:
     usernameVarName: GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_USERNAME
     passwordVarName: GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_PASSWORD
+  afriserver:
+    usernameVarName: GIPGEE_AFRISERVER_USERNAME
+    passwordVarName: GIPGEE_AFRISERVER_PASSWORD
 defaults:
-  defaultStagingRegistry: index.docker.io
-  defaultReleaseRegistry: index.docker.io
+  defaultStagingRegistry: containerregistry.afriserver.de:5000
+  defaultReleaseRegistry: containerregistry.afriserver.de:5000
   defaultContainerFile: integrationtest/Containerfile
   defaultUpdateCheckCommand: [./gipgee, update-check, auto-update-check]
   defaultTestCommand: ["integrationtest/test.sh"]
@@ -20,8 +23,8 @@ defaults:
       value: "bar"
     - key: "INTEGRATION_TEST_ARG_BAR"
       value: "foo"
-  defaultStagingRegistryCredentials: dockerio
-  defaultReleaseRegistryCredentials: dockerio
+  defaultStagingRegistryCredentials: afriserver
+  defaultReleaseRegistryCredentials: afriserver
 images:
 
   myAlpine:

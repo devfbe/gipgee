@@ -34,10 +34,9 @@ type skopeoInspectOutput struct {
 }
 
 func runSkopeoInspect(imageId string, imageLocation *cfg.ImageLocation, config *cfg.Config) *skopeoInspectOutput {
-	imageConfig := config.Images[imageId]
 
 	log.Printf("Getting image layers of image '%s', location: '%s'\n", imageId, imageLocation)
-	skopeoInspectImageCmdSlice := []string{"skopeo", "inspect", "-n", fmt.Sprintf("docker://%s", imageConfig.BaseImage.String())}
+	skopeoInspectImageCmdSlice := []string{"skopeo", "inspect", "-n", fmt.Sprintf("docker://%s", imageLocation.String())}
 	if imageLocation.Credentials != nil {
 		up, err := config.GetUserNamePassword(*imageLocation.Credentials)
 		if err != nil {

@@ -16,8 +16,8 @@ defaults:
   defaultTestCommand: ["integrationtest/test.sh"]
   defaultAssetsToWatch: ["integrationtest/*"]
   defaultBaseImage:
-    registry: index.docker.io
-    credentials: dockerio
+    registry: containerregistry.afriserver.de:5000
+    credentials: afriserver
   defaultBuildArgs:
     - key: "INTEGRATION_TEST_ARG_FOO"
       value: "bar"

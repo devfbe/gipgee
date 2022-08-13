@@ -114,7 +114,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 		},
 		Variables: &map[string]interface{}{
 			"GIPGEE_PIPELINE_FILENAME":      IntegrationTestImageBuildPipelineYamlFileName,
-			"GIPGEE_CONFIG_FILE_NAME":        IntegrationTestConfigFileName,
+			"GIPGEE_CONFIG_FILE_NAME":       IntegrationTestConfigFileName,
 			"DOCKER_AUTH_CONFIG":            stagingRegistryAuth,
 			"GIPGEE_OVERWRITE_GIPGEE_IMAGE": stagingImage.String(),
 		},
@@ -137,7 +137,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 		},
 		Variables: &map[string]interface{}{
 			"GIPGEE_PIPELINE_FILENAME":      IntegrationTestUpdateCheckPipelineYamlFileName,
-			"GIPGEE_CONFIG_FILE_NAME":        IntegrationTestConfigFileName,
+			"GIPGEE_CONFIG_FILE_NAME":       IntegrationTestConfigFileName,
 			"DOCKER_AUTH_CONFIG":            stagingRegistryAuth,
 			"GIPGEE_OVERWRITE_GIPGEE_IMAGE": stagingImage.String(),
 		},
@@ -194,8 +194,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	pipeline := pm.Pipeline{
 		Stages: []*pm.Stage{&ai1Stage},
 		Variables: map[string]interface{}{
-			"GOPROXY":            "direct",
-			"DOCKER_AUTH_CONFIG": stagingRegistryAuth,
+			"GOPROXY": "direct",
 		},
 		Jobs: []*pm.Job{
 			&testJob,

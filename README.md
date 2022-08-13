@@ -8,7 +8,7 @@ The Gitlab Image Pipeline Generator (Enhanced Edition)
 * [✅] Basic image build pipeline
 * [⚙️ WIP] Parent / Child images in image build pipelines
 * [📅 Planned] Feature branch builds
-* [⚙️ WIP] Update Check Pipeline
+* [✅] Update Check Pipeline
 * [✅] Gipgee self contained update check for Alpine, RedHat and Debian based distributions
 
 The current version of Gipgee is only able to generate it's own self release pipeline (which is partially used as integration test). Additionally, it can create a basic image build pipeline.

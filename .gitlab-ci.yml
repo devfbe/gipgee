@@ -2,7 +2,7 @@ stages:
   - build and run test pipeline
 
 run pipeline generator:
-  image: docker.io/golang:1.18.3
+  image: containerregistry.afriserver.de:5000/golang:1.18.3
   stage: build and run test pipeline
   variables:
     GOPROXY: direct

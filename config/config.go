@@ -180,12 +180,12 @@ func (config *Config) fillConfigWithDefaultsAndValidate() error {
 		}
 
 		if image.StagingLocation.Repository == nil {
-			image.StagingLocation.Repository = &[]string{git.GetCurrentGitRevisionHex("")}[0]
+			image.StagingLocation.Repository = &[]string{git.GetCurrentGitRevisionHex()}[0]
 		}
 
 		if image.StagingLocation.Tag == nil {
 			tagName := &[]string{imageId}[0]
-			gitRevision := git.GetCurrentGitRevisionHex("")
+			gitRevision := git.GetCurrentGitRevisionHex()
 			// some gitlab instances might not use imagePullPolicy: always.
 			// That is a problem in the update checks, but at least for the staging
 			// locations we can work around by ensuring as unique names as possible for the

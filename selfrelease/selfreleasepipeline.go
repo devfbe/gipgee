@@ -21,7 +21,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	ai1Stage := pm.Stage{Name: "🔨 gipgee self release 🌀"}
 	registry := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REGISTRY")
 	repository := os.Getenv("GIPGEE_SELF_RELEASE_STAGING_REPOSITORY")
-	tag := git.GetCurrentGitRevisionHex("")
+	tag := git.GetCurrentGitRevisionHex()
 	stagingImage := pm.ContainerImageCoordinates{Registry: registry, Repository: repository, Tag: tag}
 
 	stagingRegistryAuth := docker.CreateAuth(map[string]docker.UsernamePassword{
@@ -177,7 +177,7 @@ func (cmd *GeneratePipelineCmd) Run() error {
 	skopeoCmd := "skopeo copy"
 	skopeoCmd += " --dest-creds ${GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_USERNAME}:${GIPGEE_SELF_RELEASE_RELEASE_REGISTRY_PASSWORD}"
 	skopeoCmd += " --src-creds ${GIPGEE_SELF_RELEASE_STAGING_REGISTRY_USERNAME}:${GIPGEE_SELF_RELEASE_STAGING_REGISTRY_PASSWORD}"
-	skopeoCmd += fmt.Sprintf(" docker://${GIPGEE_SELF_RELEASE_STAGING_REGISTRY}/${GIPGEE_SELF_RELEASE_STAGING_REPOSITORY}:%s", git.GetCurrentGitRevisionHex("."))
+	skopeoCmd += fmt.Sprintf(" docker://${GIPGEE_SELF_RELEASE_STAGING_REGISTRY}/${GIPGEE_SELF_RELEASE_STAGING_REPOSITORY}:%s", git.GetCurrentGitRevisionHex())
 	skopeoCmd += " docker://${GIPGEE_SELF_RELEASE_REGISTRY}/${GIPGEE_SELF_RELEASE_REPOSITORY}:${GIPGEE_SELF_RELEASE_TAG}"
 
 	performSelfRelease := pm.Job{

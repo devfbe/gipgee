@@ -7,7 +7,7 @@ The Gitlab Image Pipeline Generator (Enhanced Edition)
 ## Work in progress
 * [✅] Basic image build pipeline
 * [⚙️ WIP] Parent / Child images in image build pipelines
-* [📅 Planned] Feature branch builds
+* [⚙️ WIP] Feature branch builds
 * [✅] Update Check Pipeline
 * [✅] Gipgee self contained update check for Alpine, RedHat and Debian based distributions
 

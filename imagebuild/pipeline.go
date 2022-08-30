@@ -254,20 +254,20 @@ func generateDockerAuthConfig(config *c.Config) string {
 	return dockerAuthConfig.ToJsonString()
 }
 
-func (params *GeneratePipelineCmd) Run() error {
-	config, err := c.LoadConfiguration(params.ConfigFileName)
-	if err != nil {
-		return err
-	}
+type ImagesToBuildSelector interface {
+	SelectImagesToBuild(imageSelectionFile string, config *c.Config) []string
+}
 
-	/*
-		FIXME: select depending on git diff
-	*/
+type ImagesToBuildSelectorImpl struct{}
 
+func (*ImagesToBuildSelectorImpl) SelectImagesToBuild(imageSelectionFile string, config *c.Config) []string {
+	log.Println("Deciding which images need to be built")
 	imagesToBuild := make([]string, 0)
-	if params.ImageSelectionFile != "" {
-		log.Printf("Image selection file defined ('%s'), loading image selection.\n", params.ImageSelectionFile)
-		bytes, err := os.ReadFile(params.ImageSelectionFile)
+
+	// If an image selection file is defined, always choose this.
+	if imageSelectionFile != "" {
+		log.Printf("Image selection file defined ('%s'), loading image selection.\n", imageSelectionFile)
+		bytes, err := os.ReadFile(imageSelectionFile) // #nosec G304
 		if err != nil {
 			panic(err)
 		}
@@ -280,11 +280,37 @@ func (params *GeneratePipelineCmd) Run() error {
 			log.Printf("Added image with id '%s'\n", key)
 			imagesToBuild = append(imagesToBuild, key)
 		}
-	} else {
-		for key := range config.Images {
-			imagesToBuild = append(imagesToBuild, key)
-		}
+
+		return imagesToBuild
 	}
+
+	// If no image selection file is defined, check if the current branch is != the default branch
+	// (detected by checking the gitlab predefined env vars) and if yes, perform a git diff / check
+	// the assetsToWatch section
+
+	// If the current branch is the default branch we need to check the following things:
+	// 1) If we are result of a merge or direct push, then we need to check the diff between the current state and the last state and only build
+	// 2) If there is a force push or initial commit: rebuild everything
+	// 3) If it's a manually triggered build: rebuild everything
+	// 4) Everything else (scheduled, ...): select no image
+
+	for key := range config.Images {
+		imagesToBuild = append(imagesToBuild, key)
+	}
+	return imagesToBuild
+}
+
+func (params *GeneratePipelineCmd) Run() error {
+	config, err := c.LoadConfiguration(params.ConfigFileName)
+	if err != nil {
+		return err
+	}
+
+	var imagesToBuildSel ImagesToBuildSelector = new(ImagesToBuildSelectorImpl)
+	imagesToBuild := imagesToBuildSel.SelectImagesToBuild(params.ImageSelectionFile, config)
+	/*
+		FIXME: select depending on git diff
+	*/
 
 	var generator = NewBuildPipelineGenerator(
 		config, imagesToBuild, true, params.PipelineFile, params.ConfigFileName, params.GipgeeImage,

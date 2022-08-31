@@ -188,7 +188,7 @@ func TestImageStagingTag(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg := c.Images["imageWithFixedRepositoryInStagingLocation"]
-	gitRev := git.GetCurrentGitRevisionHex("")[0:7]
+	gitRev := git.GetCurrentGitRevisionHex()[0:7]
 	expectedTag := "imageWithFixedRepositoryInStagingLocation-" + gitRev
 
 	if *cfg.StagingLocation.Tag != expectedTag {
@@ -204,12 +204,12 @@ func TestDefaultValuesForStagingLocation(t *testing.T) {
 
 	cfg := c.Images["imageWithEmptyButSetStagingLocation"]
 	assertStringEquals(*cfg.StagingLocation.Registry, "staging.example.com", t)
-	assertStringEquals(*cfg.StagingLocation.Repository, git.GetCurrentGitRevisionHex(""), t)
+	assertStringEquals(*cfg.StagingLocation.Repository, git.GetCurrentGitRevisionHex(), t)
 	assertStringEquals(*cfg.StagingLocation.Tag, cfg.Id, t)
 
 	cfg = c.Images["imageWithDefaults"]
 	assertStringEquals(*cfg.StagingLocation.Registry, "staging.example.com", t)
-	assertStringEquals(*cfg.StagingLocation.Repository, git.GetCurrentGitRevisionHex(""), t)
+	assertStringEquals(*cfg.StagingLocation.Repository, git.GetCurrentGitRevisionHex(), t)
 	assertStringEquals(*cfg.StagingLocation.Tag, cfg.Id, t)
 }
 

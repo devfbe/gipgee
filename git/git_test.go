@@ -131,6 +131,4 @@ func TestFilePathMatch(t *testing.T) {
 		}
 		t.Logf("%v matches: %v", v, m)
 	}
-
-	t.Error("bazinga")
 }

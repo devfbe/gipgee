@@ -31,7 +31,7 @@ func LoadAuthConfigFromCICDVar(jsonStringOrPath string) *DockerAuths {
 	var jsonString string
 
 	if _, err := os.Stat(jsonStringOrPath); err == nil {
-		jsonStringBytes, err := os.ReadFile(jsonStringOrPath)
+		jsonStringBytes, err := os.ReadFile(jsonStringOrPath) // #nosec G304
 		if err != nil {
 			panic(fmt.Errorf("unexpected error occurred while trying to read the file path (from DOCKER_AUTH_CONFIG) ('%w')", err))
 		}

@@ -220,7 +220,7 @@ func generateDockerAuthConfig(config *c.Config) string {
 	dockerAuthConfig := &docker.DockerAuths{Auths: make(map[string]docker.DockerAuth)}
 	if exists {
 		log.Println("Extending existing env var DOCKER_AUTH_CONFIG with the necessary pull secrets for the build pipeline")
-		dockerAuthConfig = docker.LoadAuthConfigFromString(env)
+		dockerAuthConfig = docker.LoadAuthConfigFromCICDVar(env)
 	} else {
 		log.Println("Creating new DOCKER_AUTH_CONFIG env var for the build pipeline")
 	}

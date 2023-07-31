@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 )
 
 type DockerAuth struct {
@@ -25,7 +26,20 @@ func (up *UsernamePassword) ToDockerAuth() DockerAuth {
 	}
 }
 
-func LoadAuthConfigFromString(jsonString string) *DockerAuths {
+func LoadAuthConfigFromCICDVar(jsonStringOrPath string) *DockerAuths {
+
+	var jsonString string
+
+	if _, err := os.Stat(jsonStringOrPath); err == nil {
+		jsonStringBytes, err := os.ReadFile(jsonStringOrPath)
+		if err != nil {
+			panic(fmt.Errorf("unexpected error occurred while trying to read the file path (from DOCKER_AUTH_CONFIG) ('%w')", err))
+		}
+		jsonString = string(jsonStringBytes)
+	} else {
+		jsonString = jsonStringOrPath
+	}
+
 	dockerAuths := DockerAuths{}
 	err := json.Unmarshal([]byte(jsonString), &dockerAuths)
 	if err != nil {

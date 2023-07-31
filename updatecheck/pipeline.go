@@ -188,7 +188,7 @@ func generateDockerAuthConfig(imageId string, cfg *config.Config) string {
 	dockerAuthConfig := &docker.DockerAuths{Auths: make(map[string]docker.DockerAuth)}
 	if exists {
 		log.Printf("Extending existing env var DOCKER_AUTH_CONFIG with the necessary pull secrets for image '%s'\n", imageId)
-		dockerAuthConfig = docker.LoadAuthConfigFromString(env)
+		dockerAuthConfig = docker.LoadAuthConfigFromCICDVar(env)
 	} else {
 		log.Printf("Creating new DOCKER_AUTH_CONFIG env var for the image update check for image '%s'\n", imageId)
 	}

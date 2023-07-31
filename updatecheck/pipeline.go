@@ -158,10 +158,10 @@ func GeneratePipeline(params PipelineParams) *pm.Pipeline {
 			Name:  "🛫 Trigger rebuild pipeline",
 			Stage: &ai1Stage,
 			Trigger: &pm.JobTrigger{
-				Include: &pm.JobTriggerInclude{
+				Include: []pm.JobTriggerInclude{{
 					Artifact: ".gipgee-gitlab-ci.yml",
 					Job:      &generateRebuildPipelineJob,
-				},
+				}},
 				Strategy: "depend",
 			},
 			Needs: []pm.JobNeeds{

@@ -150,10 +150,10 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			{Job: &buildIntegrationTestImageBuildPipeline, Artifacts: true},
 		},
 		Trigger: &pm.JobTrigger{
-			Include: &pm.JobTriggerInclude{
+			Include: []pm.JobTriggerInclude{{
 				Artifact: IntegrationTestImageBuildPipelineYamlFileName,
 				Job:      &buildIntegrationTestImageBuildPipeline,
-			},
+			}},
 			Strategy: "depend",
 		},
 	}
@@ -166,10 +166,10 @@ func (cmd *GeneratePipelineCmd) Run() error {
 			{Job: &runIntegrationTestImageBuildPipeline, Artifacts: false},
 		},
 		Trigger: &pm.JobTrigger{
-			Include: &pm.JobTriggerInclude{
+			Include: []pm.JobTriggerInclude{{
 				Artifact: IntegrationTestUpdateCheckPipelineYamlFileName,
 				Job:      &buildIntegrationTestUpdateCheckPipeline,
-			},
+			}},
 			Strategy: "depend",
 		},
 	}

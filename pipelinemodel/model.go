@@ -154,8 +154,8 @@ func (jobTriggerInclude JobTriggerInclude) MarshalYAML() (interface{}, error) {
 }
 
 type JobTrigger struct {
-	Include  *JobTriggerInclude `yaml:"include"`
-	Strategy string             `yaml:"strategy"`
+	Include  []JobTriggerInclude `yaml:"include"`
+	Strategy string              `yaml:"strategy"`
 }
 
 func (jobNeeds JobNeeds) MarshalYAML() (interface{}, error) {
